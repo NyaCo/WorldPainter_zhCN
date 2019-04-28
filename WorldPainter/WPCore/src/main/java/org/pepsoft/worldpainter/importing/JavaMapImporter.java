@@ -5,43 +5,54 @@
 package org.pepsoft.worldpainter.importing;
 
 import org.jnbt.CompoundTag;
-import org.jnbt.NBTInputStream;
+import org.jnbt.StringTag;
 import org.jnbt.Tag;
-import org.pepsoft.minecraft.*;
+import org.jnbt.XMLTransformer;
+import org.pepsoft.minecraft.ChunkStore;
+import org.pepsoft.minecraft.Level;
+import org.pepsoft.minecraft.Material;
+import org.pepsoft.minecraft.MinecraftCoords;
 import org.pepsoft.util.ProgressReceiver;
 import org.pepsoft.util.SubProgressReceiver;
-import org.pepsoft.worldpainter.*;
 import org.pepsoft.worldpainter.Dimension;
+import org.pepsoft.worldpainter.*;
 import org.pepsoft.worldpainter.history.HistoryEntry;
 import org.pepsoft.worldpainter.layers.*;
 import org.pepsoft.worldpainter.layers.exporters.FrostExporter.FrostSettings;
 import org.pepsoft.worldpainter.layers.exporters.ResourcesExporter.ResourcesExporterSettings;
+import org.pepsoft.worldpainter.plugins.PlatformManager;
 import org.pepsoft.worldpainter.themes.SimpleTheme;
 import org.pepsoft.worldpainter.vo.EventVO;
 
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.StringWriter;
 import java.util.*;
-import java.util.regex.Pattern;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.pepsoft.minecraft.Constants.*;
+import static org.pepsoft.minecraft.Material.*;
 import static org.pepsoft.worldpainter.Constants.*;
 import static org.pepsoft.worldpainter.DefaultPlugin.*;
+import static org.pepsoft.worldpainter.biomeschemes.Minecraft1_13Biomes.BIOME_NAMES;
+import static org.pepsoft.worldpainter.biomeschemes.Minecraft1_13Biomes.HIGHEST_BIOME_ID;
 
 /**
+ * An importer of Minecraft-like maps (with Minecraft-compatible
+ * {@code level.dat} files and based on {@link BlockBasedPlatformProvider}s.
  *
  * @author pepijn
  */
-public class JavaMapImporter {
-    public JavaMapImporter(TileFactory tileFactory, File levelDatFile, boolean populateNewChunks, Set<Point> chunksToSkip, ReadOnlyOption readOnlyOption, Set<Integer> dimensionsToImport) {
+public class JavaMapImporter extends MapImporter {
+    public JavaMapImporter(Platform platform, TileFactory tileFactory, File levelDatFile, boolean populateNewChunks, Set<MinecraftCoords> chunksToSkip, ReadOnlyOption readOnlyOption, Set<Integer> dimensionsToImport) {
         if ((tileFactory == null) || (levelDatFile == null) || (readOnlyOption == null) || (dimensionsToImport == null)) {
             throw new NullPointerException();
         }
         if (! levelDatFile.isFile()) {
             throw new IllegalArgumentException(levelDatFile + " does not exist or is not a regular file");
         }
+        this.platform = platform;
         this.tileFactory = tileFactory;
         this.levelDatFile = levelDatFile;
         this.populateNewChunks = populateNewChunks;
@@ -49,27 +60,20 @@ public class JavaMapImporter {
         this.readOnlyOption = readOnlyOption;
         this.dimensionsToImport = dimensionsToImport;
     }
-    
-    public World2 doImport() throws IOException {
-        try {
-            return doImport(null);
-        } catch (ProgressReceiver.OperationCancelled e) {
-            throw new InternalError();
-        }
-    }
-    
+
     public World2 doImport(ProgressReceiver progressReceiver) throws IOException, ProgressReceiver.OperationCancelled {
         long start = System.currentTimeMillis();
 
         logger.info("Importing map from " + levelDatFile.getAbsolutePath());
         Level level = Level.load(levelDatFile);
         int version = level.getVersion();
-        if ((version != SUPPORTED_VERSION_1) && (version != SUPPORTED_VERSION_2)) {
+        if ((version != VERSION_MCREGION) && (version != VERSION_ANVIL)) {
             throw new UnsupportedOperationException("Level format version " + version + " not supported");
         }
         String name = level.getName().trim();
         int maxHeight = level.getMaxHeight();
-        World2 world = new World2((version == SUPPORTED_VERSION_1) ? JAVA_MCREGION : JAVA_ANVIL, maxHeight);
+        Platform platform = (version == VERSION_MCREGION) ? JAVA_MCREGION : ((level.getDataVersion() <= DATA_VERSION_MC_1_12_2) ? JAVA_ANVIL : JAVA_ANVIL_1_13);
+        World2 world = new World2(platform, maxHeight);
         world.addHistoryEntry(HistoryEntry.WORLD_IMPORTED_FROM_MINECRAFT_MAP, level.getName(), levelDatFile.getParentFile());
         world.setCreateGoodiesChest(false);
         world.setName(name);
@@ -85,12 +89,19 @@ public class JavaMapImporter {
         if (level.getGenerator() == Generator.CUSTOM) {
             world.setGeneratorOptions(level.getGeneratorName());
         } else {
-            world.setGeneratorOptions(level.getGeneratorOptions());
+            Tag generatorOptions = level.getGeneratorOptions();
+            if (generatorOptions instanceof StringTag) {
+                world.setGeneratorOptions(((StringTag) generatorOptions).getValue());
+            } else if (generatorOptions instanceof CompoundTag) {
+                StringWriter sw = new StringWriter();
+                XMLTransformer.toXML(generatorOptions, sw);
+                world.setGeneratorOptions(sw.toString());
+            } else if (generatorOptions != null) {
+                throw new IllegalArgumentException("Unexpected type of generatorOptions encountered: " + generatorOptions);
+            }
         }
         world.setDifficulty(level.getDifficulty());
-        if ((version == SUPPORTED_VERSION_2) && (level.getBorderSize() > 0.0)) {
-            // If the world is version 0x4abd and actually has border settings,
-            // load them
+        if ((version == VERSION_ANVIL) && (level.getBorderSize() > 0.0)) {
             world.getBorderSettings().setCentreX((int) (level.getBorderCenterX() + 0.5));
             world.getBorderSettings().setCentreY((int) (level.getBorderCenterZ() + 0.5));
             world.getBorderSettings().setSize((int) (level.getBorderSize() + 0.5));
@@ -102,16 +113,7 @@ public class JavaMapImporter {
             world.getBorderSettings().setDamagePerBlock((int) (level.getBorderDamagePerBlock() + 0.5));
         }
         File worldDir = levelDatFile.getParentFile();
-        File regionDir = new File(worldDir, "region");
-        File netherDir = new File(worldDir, "DIM-1/region");
-        File endDir = new File(worldDir, "DIM1/region");
-        int dimCount = 1;
-        if (netherDir.isDirectory() && dimensionsToImport.contains(DIM_NETHER)) {
-            dimCount++;
-        }
-        if (endDir.isDirectory() && dimensionsToImport.contains(DIM_END)) {
-            dimCount++;
-        }
+        int dimCount = dimensionsToImport.size();
         long minecraftSeed = level.getSeed();
         tileFactory.setSeed(minecraftSeed);
         Dimension dimension = new Dimension(world, minecraftSeed, tileFactory, DIM_NORMAL, maxHeight);
@@ -128,15 +130,15 @@ public class JavaMapImporter {
             
             ResourcesExporterSettings resourcesSettings = (ResourcesExporterSettings) dimension.getLayerSettings(Resources.INSTANCE);
             resourcesSettings.setMinimumLevel(0);
-            if (version == SUPPORTED_VERSION_1) {
-                resourcesSettings.setChance(BLK_EMERALD_ORE, 0);
+            if (version == VERSION_MCREGION) {
+                resourcesSettings.setChance(EMERALD_ORE, 0);
             }
             Configuration config = Configuration.getInstance();
             dimension.setGridEnabled(config.isDefaultGridEnabled());
             dimension.setGridSize(config.getDefaultGridSize());
             dimension.setContoursEnabled(config.isDefaultContoursEnabled());
             dimension.setContourSeparation(config.getDefaultContourSeparation());
-            String dimWarnings = importDimension(regionDir, dimension, version, (progressReceiver != null) ? new SubProgressReceiver(progressReceiver, 0.0f, 1.0f / dimCount) : null);
+            String dimWarnings = importDimension(worldDir, dimension, (progressReceiver != null) ? new SubProgressReceiver(progressReceiver, 0.0f, 1.0f / dimCount) : null);
             if (dimWarnings != null) {
                 if (warnings == null) {
                     warnings = dimWarnings;
@@ -149,7 +151,7 @@ public class JavaMapImporter {
         }
         world.addDimension(dimension);
         int dimNo = 1;
-        if (netherDir.isDirectory() && dimensionsToImport.contains(DIM_NETHER)) {
+        if (dimensionsToImport.contains(DIM_NETHER)) {
             HeightMapTileFactory netherTileFactory = TileFactoryFactory.createNoiseTileFactory(minecraftSeed + 1, Terrain.NETHERRACK, maxHeight, 188, 192, true, false, 20f, 1.0);
             SimpleTheme theme = (SimpleTheme) netherTileFactory.getTheme();
             SortedMap<Integer, Terrain> terrainRanges = theme.getTerrainRanges();
@@ -164,10 +166,10 @@ public class JavaMapImporter {
                 dimension.setSubsurfaceMaterial(Terrain.NETHERRACK);
                 ResourcesExporterSettings resourcesSettings = (ResourcesExporterSettings) dimension.getLayerSettings(Resources.INSTANCE);
                 resourcesSettings.setMinimumLevel(0);
-                if (version == SUPPORTED_VERSION_1) {
-                    resourcesSettings.setChance(BLK_QUARTZ_ORE, 0);
+                if (version == VERSION_MCREGION) {
+                    resourcesSettings.setChance(QUARTZ_ORE, 0);
                 }
-                String dimWarnings = importDimension(netherDir, dimension, version, (progressReceiver != null) ? new SubProgressReceiver(progressReceiver, (float) dimNo++ / dimCount, 1.0f / dimCount) : null);
+                String dimWarnings = importDimension(worldDir, dimension, (progressReceiver != null) ? new SubProgressReceiver(progressReceiver, (float) dimNo++ / dimCount, 1.0f / dimCount) : null);
                 if (dimWarnings != null) {
                     if (warnings == null) {
                         warnings = dimWarnings;
@@ -180,7 +182,7 @@ public class JavaMapImporter {
             }
             world.addDimension(dimension);
         }
-        if (endDir.isDirectory() && dimensionsToImport.contains(DIM_END)) {
+        if (dimensionsToImport.contains(DIM_END)) {
             HeightMapTileFactory endTileFactory = TileFactoryFactory.createNoiseTileFactory(minecraftSeed + 2, Terrain.END_STONE, maxHeight, 32, 0, false, false, 20f, 1.0);
             SimpleTheme theme = (SimpleTheme) endTileFactory.getTheme();
             SortedMap<Integer, Terrain> terrainRanges = theme.getTerrainRanges();
@@ -193,7 +195,7 @@ public class JavaMapImporter {
             try {
                 dimension.setCoverSteepTerrain(false);
                 dimension.setSubsurfaceMaterial(Terrain.END_STONE);
-                String dimWarnings = importDimension(endDir, dimension, version, (progressReceiver != null) ? new SubProgressReceiver(progressReceiver, (float) dimNo / dimCount, 1.0f / dimCount) : null);
+                String dimWarnings = importDimension(worldDir, dimension, (progressReceiver != null) ? new SubProgressReceiver(progressReceiver, (float) dimNo / dimCount, 1.0f / dimCount) : null);
                 if (dimWarnings != null) {
                     if (warnings == null) {
                         warnings = dimWarnings;
@@ -218,7 +220,7 @@ public class JavaMapImporter {
             event.setAttribute(ATTRIBUTE_KEY_GAME_TYPE_NAME, world.getGameType().name());
             event.setAttribute(ATTRIBUTE_KEY_ALLOW_CHEATS, world.isAllowCheats());
             event.setAttribute(ATTRIBUTE_KEY_GENERATOR, world.getGenerator().name());
-            if (world.getPlatform().equals(JAVA_ANVIL) && (world.getGenerator() == Generator.FLAT)) {
+            if ((world.getPlatform() == JAVA_ANVIL) && (world.getGenerator() == Generator.FLAT) && (world.getGeneratorOptions() != null)) {
                 event.setAttribute(ATTRIBUTE_KEY_GENERATOR_OPTIONS, world.getGeneratorOptions());
             }
             event.setAttribute(ATTRIBUTE_KEY_TILES, dimension.getTiles().size());
@@ -231,154 +233,120 @@ public class JavaMapImporter {
     public String getWarnings() {
         return warnings;
     }
-    
-    private String importDimension(File regionDir, Dimension dimension, int version, ProgressReceiver progressReceiver) throws IOException, ProgressReceiver.OperationCancelled {
+
+    private String importDimension(File worldDir, Dimension dimension, ProgressReceiver progressReceiver) throws ProgressReceiver.OperationCancelled {
         if (progressReceiver != null) {
             progressReceiver.setMessage(dimension.getName() + " dimension");
         }
         final int maxHeight = dimension.getMaxHeight();
         final int maxY = maxHeight - 1;
-        final Pattern regionFilePattern = (version == SUPPORTED_VERSION_1)
-            ? Pattern.compile("r\\.-?\\d+\\.-?\\d+\\.mcr")
-            : Pattern.compile("r\\.-?\\d+\\.-?\\d+\\.mca");
-        final File[] regionFiles = regionDir.listFiles((dir, name) -> regionFilePattern.matcher(name).matches());
-        if ((regionFiles == null) || (regionFiles.length == 0)) {
-            throw new RuntimeException("The " + dimension.getName() + " dimension of this map has no region files!");
-        }
         final Set<Point> newChunks = new HashSet<>();
-//        final SortedSet<Material> manMadeBlockTypes = new TreeSet<Material>();
-        final boolean importBiomes = (version == SUPPORTED_VERSION_2) && (dimension.getDim() == DIM_NORMAL);
-        final int total = regionFiles.length * 1024;
-        int count = 0;
+        final Set<String> manMadeBlockTypes = new HashSet<>();
+        final Set<Integer> unknownBiomes = new HashSet<>();
+        final boolean importBiomes = (platform != JAVA_MCREGION) && (dimension.getDim() == DIM_NORMAL);
+        final ChunkStore chunkStore = PlatformManager.getInstance().getChunkStore(platform, worldDir, dimension.getDim());
+        final int total = chunkStore.getChunkCount();
+        final AtomicInteger count = new AtomicInteger();
         final StringBuilder reportBuilder = new StringBuilder();
-        for (File file: regionFiles) {
+        if (! chunkStore.visitChunks(chunk -> {
             try {
-                RegionFile regionFile = new RegionFile(file, true);
+                if (progressReceiver != null) {
+                    progressReceiver.setProgress((float) count.getAndIncrement() / total);
+                }
+                final MinecraftCoords chunkCoords = chunk.getCoords();
+                if ((chunksToSkip != null) && chunksToSkip.contains(chunkCoords)) {
+                    return true;
+                }
+
+                final int chunkX = chunkCoords.x;
+                final int chunkZ = chunkCoords.z;
+                final Point tileCoords = new Point(chunkX >> 3, chunkZ >> 3);
+                Tile tile = dimension.getTile(tileCoords);
+                if (tile == null) {
+                    tile = dimension.getTileFactory().createTile(tileCoords.x, tileCoords.y);
+                    for (int xx = 0; xx < 8; xx++) {
+                        for (int yy = 0; yy < 8; yy++) {
+                            newChunks.add(new Point((tileCoords.x << TILE_SIZE_BITS) | (xx << 4), (tileCoords.y << TILE_SIZE_BITS) | (yy << 4)));
+                        }
+                    }
+                    dimension.addTile(tile);
+                }
+                newChunks.remove(new Point(chunkX << 4, chunkZ << 4));
+
+                boolean manMadeStructuresBelowGround = false;
+                boolean manMadeStructuresAboveGround = false;
                 try {
-                    for (int x = 0; x < 32; x++) {
-                        for (int z = 0; z < 32; z++) {
-                            if (progressReceiver != null) {
-                                progressReceiver.setProgress((float) count / total);
-                                count++;
-                            }
-                            final Point chunkCoords = new Point((regionFile.getX() << 5) | x, (regionFile.getZ() << 5) | z);
-                            if ((chunksToSkip != null) && chunksToSkip.contains(chunkCoords)) {
-                                continue;
-                            }
-                            if (regionFile.containsChunk(x, z)) {
-                                final Tag tag;
-                                try {
-                                    final InputStream chunkData = regionFile.getChunkDataInputStream(x, z);
-                                    if (chunkData == null) {
-                                        // This should never happen, since we checked
-                                        // with isChunkPresent(), but in practice it
-                                        // does. Perhaps corrupted data?
-                                        reportBuilder.append("Missing chunk data for chunk " + x + ", " + z + " in " + file + "; skipping chunk" + EOL);
-                                        logger.warn("Missing chunk data for chunk " + x + ", " + z + " in " + file + "; skipping chunk");
-                                        continue;
+                    for (int xx = 0; xx < 16; xx++) {
+                        for (int zz = 0; zz < 16; zz++) {
+                            float height = -1.0f;
+                            int waterLevel = 0;
+                            boolean floodWithLava = false, frost = false;
+                            Terrain terrain = Terrain.BEDROCK;
+                            for (int y = Math.min(maxY, chunk.getHighestNonAirBlock(xx, zz)); y >= 0; y--) {
+                                Material material = chunk.getMaterial(xx, y, zz);
+                                                if (!material.natural) {
+                                    if (height == -1.0f) {
+                                        manMadeStructuresAboveGround = true;
+                                    } else {
+                                        manMadeStructuresBelowGround = true;
                                     }
-                                    try (NBTInputStream in = new NBTInputStream(chunkData)) {
-                                        tag = in.readTag();
-                                    }
-                                } catch (IOException e) {
-                                    reportBuilder.append("I/O error while reading chunk " + x + ", " + z + " from file " + file + " (message: \"" + e.getMessage() + "\"); skipping chunk" + EOL);
-                                    logger.error("I/O error while reading chunk " + x + ", " + z + " from file " + file + "; skipping chunk", e);
-                                    continue;
-                                } catch (IllegalArgumentException e) {
-                                    reportBuilder.append("Illegal argument exception while reading chunk " + x + ", " + z + " from file " + file + " (message: \"" + e.getMessage() + "\"); skipping chunk" + EOL);
-                                    logger.error("Illegal argument exception while reading chunk " + x + ", " + z + " from file " + file + "; skipping chunk", e);
-                                    continue;
-                                } catch (NegativeArraySizeException e) {
-                                    reportBuilder.append("Negative array size exception while reading chunk " + x + ", " + z + " from file " + file + " (message: \"" + e.getMessage() + "\"); skipping chunk" + EOL);
-                                    logger.error("Negative array size exception while reading chunk " + x + ", " + z + " from file " + file + "; skipping chunk", e);
-                                    continue;
-                                }
-                                final Chunk chunk = (version == SUPPORTED_VERSION_1)
-                                    ? new ChunkImpl((CompoundTag) tag, maxHeight)
-                                    : new ChunkImpl2((CompoundTag) tag, maxHeight);
-
-                                final Point tileCoords = new Point(chunk.getxPos() >> 3, chunk.getzPos() >> 3);
-                                Tile tile = dimension.getTile(tileCoords);
-                                if (tile == null) {
-                                    tile = dimension.getTileFactory().createTile(tileCoords.x, tileCoords.y);
-                                    for (int xx = 0; xx < 8; xx++) {
-                                        for (int yy = 0; yy < 8; yy++) {
-                                            newChunks.add(new Point((tileCoords.x << TILE_SIZE_BITS) | (xx << 4), (tileCoords.y << TILE_SIZE_BITS) | (yy << 4)));
-                                        }
-                                    }
-                                    dimension.addTile(tile);
-                                }
-                                newChunks.remove(new Point(chunk.getxPos() << 4, chunk.getzPos() << 4));
-
-                                boolean manMadeStructuresBelowGround = false;
-                                boolean manMadeStructuresAboveGround = false;
-                                try {
-                                    for (int xx = 0; xx < 16; xx++) {
-                                        for (int zz = 0; zz < 16; zz++) {
-                                            float height = -1.0f;
-                                            int waterLevel = 0;
-                                            boolean floodWithLava = false, frost = false;
-                                            Terrain terrain = Terrain.BEDROCK;
-                                            for (int y = maxY; y >= 0; y--) {
-                                                int blockType = chunk.getBlockType(xx, y, zz);
-                                                int data = chunk.getDataValue(xx, y, zz);
-                                                if (! NATURAL_BLOCKS.get(blockType)) {
-                                                    if (height == -1.0f) {
-                                                        manMadeStructuresAboveGround = true;
-                                                    } else {
-                                                        manMadeStructuresBelowGround = true;
-                                                    }
-//                                                    manMadeBlockTypes.add(Material.get(blockType, data));
+                                                    manMadeBlockTypes.add(material.name);
                                                 }
-                                                if ((blockType == BLK_SNOW) || (blockType == BLK_ICE)) {
-                                                    frost = true;
-                                                }
-                                                if (((blockType == BLK_ICE) || (blockType == BLK_FROSTED_ICE) || (((blockType == BLK_STATIONARY_WATER) || (blockType == BLK_WATER) || (blockType == BLK_STATIONARY_LAVA) || (blockType == BLK_LAVA)) && (data == 0))) && (waterLevel == 0)) {
+                                String name = material.name;
+                                if ((name == MC_SNOW) || (name == MC_ICE)) {
+                                    frost = true;
+                                }
+                                if ((waterLevel == 0) && ((name == MC_ICE)
+                                                                          || (name == MC_FROSTED_ICE)
+                                                                          || (name == MC_BUBBLE_COLUMN)
+                                                                          || (((name == MC_WATER) || (name == MC_LAVA))
+                                                                              && (material.getProperty(LEVEL) == 0))
+                                                                          || material.is(WATERLOGGED))) {
                                                     waterLevel = y;
-                                                    if ((blockType == BLK_LAVA) || (blockType == BLK_STATIONARY_LAVA)) {
+                                                    if (name == MC_LAVA) {
                                                         floodWithLava = true;
                                                     }
                                                 } else if (height == -1.0f) {
-                                                    final Material material = Material.get(blockType, data);
-                                                    if (SPECIAL_TERRAIN_MAPPING.containsKey(material)) {
-                                                        // Special terrain found
-                                                        height = y - 0.4375f; // Value that falls in the middle of the lowest one eigthth which will still round to the same integer value and will receive a one layer thick smooth snow block (principle of least surprise)
-                                                        terrain = SPECIAL_TERRAIN_MAPPING.get(material);
-                                                    } else if (TERRAIN_MAPPING.containsKey(blockType)) {
-                                                        // Terrain found
-                                                        height = y - 0.4375f; // Value that falls in the middle of the lowest one eigthth which will still round to the same integer value and will receive a one layer thick smooth snow block (principle of least surprise)
-                                                        terrain = TERRAIN_MAPPING.get(blockType);
+                                                    if (TERRAIN_MAPPING.containsKey(name)) {
+                                        // Terrain found
+                                        height = y - 0.4375f; // Value that falls in the middle of the lowest one eighth which will still round to the same integer value and will receive a one layer thick smooth snow block (principle of least surprise)
+                                        terrain = TERRAIN_MAPPING.get(name);
                                                     }
                                                 }
                                             }
                                             // Use smooth snow, if present, to better approximate world height, so smooth snow will survive merge
                                             final int intHeight = (int) (height + 0.5f);
-                                            if ((height != -1.0f) && (intHeight < maxY) && (chunk.getBlockType(xx, intHeight + 1, zz) == BLK_SNOW)) {
-                                                int data = chunk.getDataValue(xx, intHeight + 1, zz);
-                                                height += data * 0.125;
-                                                
-                                            }
-                                            if ((waterLevel == 0) && (height >= 61.5f)) {
-                                                waterLevel = 62;
-                                            }
+                                            if ((height != -1.0f) && (intHeight < maxY)) {
+                                                Material materialAbove = chunk.getMaterial(xx, intHeight + 1, zz);
+                                                if (materialAbove.isNamed(MC_SNOW)) {
+                                                    int layers = materialAbove.getProperty(LAYERS);
+                                                    height += layers * 0.125;
+}
+                            }
+                            if ((waterLevel == 0) && (height >= 61.5f)) {
+                                waterLevel = 62;
+                            }
 
-                                            final int blockX = (chunk.getxPos() << 4) | xx;
-                                            final int blockY = (chunk.getzPos() << 4) | zz;
-                                            final Point coords = new Point(blockX, blockY);
-                                            dimension.setTerrainAt(coords, terrain);
-                                            dimension.setHeightAt(coords, Math.max(height, 0.0f));
-                                            dimension.setWaterLevelAt(blockX, blockY, waterLevel);
-                                            if (frost) {
-                                                dimension.setBitLayerValueAt(Frost.INSTANCE, blockX, blockY, true);
-                                            }
-                                            if (floodWithLava) {
-                                                dimension.setBitLayerValueAt(FloodWithLava.INSTANCE, blockX, blockY, true);
-                                            }
-                                            if (height == -1.0f) {
-                                                dimension.setBitLayerValueAt(org.pepsoft.worldpainter.layers.Void.INSTANCE, blockX, blockY, true);
-                                            }
-                                            if (importBiomes && chunk.isBiomesAvailable()) {
-                                                final int biome = chunk.getBiome(xx, zz);
+                            final int blockX = (chunkX << 4) | xx;
+                            final int blockY = (chunkZ << 4) | zz;
+                            final Point coords = new Point(blockX, blockY);
+                            dimension.setTerrainAt(coords, terrain);
+                            dimension.setHeightAt(coords, Math.max(height, 0.0f));
+                            dimension.setWaterLevelAt(blockX, blockY, waterLevel);
+                            if (frost) {
+                                dimension.setBitLayerValueAt(Frost.INSTANCE, blockX, blockY, true);
+                            }
+                            if (floodWithLava) {
+                                dimension.setBitLayerValueAt(FloodWithLava.INSTANCE, blockX, blockY, true);
+                            }
+                            if (height == -1.0f) {
+                                dimension.setBitLayerValueAt(org.pepsoft.worldpainter.layers.Void.INSTANCE, blockX, blockY, true);
+                            }
+                            if (importBiomes && chunk.isBiomesAvailable()) {
+                                final int biome = chunk.getBiome(xx, zz);
+                                if (((biome > HIGHEST_BIOME_ID) || (BIOME_NAMES[biome] == null)) && (biome != 255)) {
+                                                    unknownBiomes.add(biome);
+                                                }
                                                 // If the biome is set (around the edges of the map Minecraft sets it to
                                                 // 255, presumably as a marker that it has yet to be calculated), copy
                                                 // it to the dimension. However, if it matches what the automatic biome
@@ -391,30 +359,27 @@ public class JavaMapImporter {
                                         }
                                     }
                                 } catch (NullPointerException e) {
-                                    reportBuilder.append("Null pointer exception while reading chunk " + x + ", " + z + " from file " + file + "; skipping chunk" + EOL);
-                                    logger.error("Null pointer exception while reading chunk " + x + ", " + z + " from file " + file + "; skipping chunk", e);
-                                    continue;
-                                } catch (ArrayIndexOutOfBoundsException e) {
-                                    reportBuilder.append("Array index out of bounds while reading chunk " + x + ", " + z + " from file " + file + " (message: \"" + e.getMessage() + "\"); skipping chunk" + EOL);
-                                    logger.error("Array index out of bounds while reading chunk " + x + ", " + z + " from file " + file + "; skipping chunk", e);
-                                    continue;
-                                }
-
-                                if (((readOnlyOption == ReadOnlyOption.MAN_MADE) && (manMadeStructuresBelowGround || manMadeStructuresAboveGround))
-                                        || ((readOnlyOption == ReadOnlyOption.MAN_MADE_ABOVE_GROUND) && manMadeStructuresAboveGround)
-                                        || (readOnlyOption == ReadOnlyOption.ALL)) {
-                                    dimension.setBitLayerValueAt(ReadOnly.INSTANCE, chunk.getxPos() << 4, chunk.getzPos() << 4, true);
-                                }
-                            }
-                        }
-                    }
-                } finally {
-                    regionFile.close();
+                                    reportBuilder.append("Null pointer exception while reading chunk " + chunkX + "," + chunkZ + "; skipping chunk" + EOL);
+                    logger.error("Null pointer exception while reading chunk " + chunkX + "," + chunkZ + "; skipping chunk", e);
+                    return true;
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    reportBuilder.append("Array index out of bounds while reading chunk " + chunkX + "," + chunkZ + " (message: \"" + e.getMessage() + "\"); skipping chunk" + EOL);
+                    logger.error("Array index out of bounds while reading chunk " + chunkX + "," + chunkZ + "; skipping chunk", e);
+                    return true;
                 }
-            } catch (IOException e) {
-                reportBuilder.append("I/O error while opening region file " + file + " (message: \"" + e.getMessage() + "\"); skipping region" + EOL);
-                logger.error("I/O error while opening region file " + file + "; skipping region", e);
+
+                if (((readOnlyOption == ReadOnlyOption.MAN_MADE) && (manMadeStructuresBelowGround || manMadeStructuresAboveGround))
+                        || ((readOnlyOption == ReadOnlyOption.MAN_MADE_ABOVE_GROUND) && manMadeStructuresAboveGround)
+                        || (readOnlyOption == ReadOnlyOption.ALL)) {
+                    dimension.setBitLayerValueAt(ReadOnly.INSTANCE, chunkX << 4, chunkZ << 4, true);
+                }
+            } catch (ProgressReceiver.OperationCancelled e) {
+                return false;
             }
+
+            return true;
+        })) {
+            throw new ProgressReceiver.OperationCancelled("Operation cancelled");
         }
         
         // Process chunks that were only added to fill out a tile
@@ -429,116 +394,90 @@ public class JavaMapImporter {
             progressReceiver.setProgress(1.0f);
         }
         
-//        System.err.println("Man-made block types encountered:");
-//        for (Material blockType: manMadeBlockTypes) {
-//            System.err.println(blockType);
-//        }
+        System.err.println("Man-made block types encountered:");
+        manMadeBlockTypes.forEach(System.err::println);
+        System.err.println("Unknown biome IDs encountered:");
+        unknownBiomes.forEach(System.err::println);
         
         return reportBuilder.length() != 0 ? reportBuilder.toString() : null;
     }
-    
+
+    private final Platform platform;
     private final TileFactory tileFactory;
     private final File levelDatFile;
     private final boolean populateNewChunks;
-    private final Set<Point> chunksToSkip;
+    private final Set<MinecraftCoords> chunksToSkip;
     private final ReadOnlyOption readOnlyOption;
     private final Set<Integer> dimensionsToImport;
     private String warnings;
     
-    public static final Map<Integer, Terrain> TERRAIN_MAPPING = new HashMap<>();
-    public static final Map<Material, Terrain> SPECIAL_TERRAIN_MAPPING = new HashMap<>();
-    public static final BitSet NATURAL_BLOCKS = new BitSet();
+    public static final Map<String, Terrain> TERRAIN_MAPPING = new HashMap<>();
 
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(JavaMapImporter.class);
     private static final String EOL = System.getProperty("line.separator");
     
     static {
-        TERRAIN_MAPPING.put(BLK_STONE, Terrain.STONE);
-        TERRAIN_MAPPING.put(BLK_GRASS, Terrain.BARE_GRASS);
-        TERRAIN_MAPPING.put(BLK_DIRT, Terrain.DIRT);
-        TERRAIN_MAPPING.put(BLK_BEDROCK, Terrain.BEDROCK);
-        TERRAIN_MAPPING.put(BLK_SAND, Terrain.SAND);
-        TERRAIN_MAPPING.put(BLK_GRAVEL, Terrain.GRAVEL);
-        TERRAIN_MAPPING.put(BLK_GOLD_ORE, Terrain.STONE);
-        TERRAIN_MAPPING.put(BLK_IRON_ORE, Terrain.STONE);
-        TERRAIN_MAPPING.put(BLK_COAL, Terrain.STONE);
-        TERRAIN_MAPPING.put(BLK_LAPIS_LAZULI_ORE, Terrain.STONE);
-        TERRAIN_MAPPING.put(BLK_DIAMOND_ORE, Terrain.STONE);
-        TERRAIN_MAPPING.put(BLK_REDSTONE_ORE, Terrain.STONE);
-        TERRAIN_MAPPING.put(BLK_GLOWING_REDSTONE_ORE, Terrain.STONE);
-        TERRAIN_MAPPING.put(BLK_HIDDEN_SILVERFISH, Terrain.STONE);
-        TERRAIN_MAPPING.put(BLK_SANDSTONE, Terrain.SANDSTONE);
-        TERRAIN_MAPPING.put(BLK_OBSIDIAN, Terrain.OBSIDIAN);
-        TERRAIN_MAPPING.put(BLK_TILLED_DIRT, Terrain.DIRT);
-        TERRAIN_MAPPING.put(BLK_SNOW_BLOCK, Terrain.DEEP_SNOW);
-        TERRAIN_MAPPING.put(BLK_CLAY, Terrain.CLAY);
-        TERRAIN_MAPPING.put(BLK_NETHERRACK, Terrain.NETHERRACK);
-        TERRAIN_MAPPING.put(BLK_QUARTZ_ORE, Terrain.NETHERRACK);
-        TERRAIN_MAPPING.put(BLK_SOUL_SAND, Terrain.SOUL_SAND);
-        TERRAIN_MAPPING.put(BLK_MYCELIUM, Terrain.MYCELIUM);
-        TERRAIN_MAPPING.put(BLK_END_STONE, Terrain.END_STONE);
-        TERRAIN_MAPPING.put(BLK_HARDENED_CLAY, Terrain.HARDENED_CLAY);
-        TERRAIN_MAPPING.put(BLK_RED_SANDSTONE, Terrain.RED_SANDSTONE);
-        TERRAIN_MAPPING.put(BLK_GRASS_PATH, Terrain.GRASS_PATH);
-        TERRAIN_MAPPING.put(BLK_MAGMA, Terrain.MAGMA); // TODO: or should this be mapped to stone and magma added to the Resources layer?
-
-        SPECIAL_TERRAIN_MAPPING.put(Material.RED_SAND, Terrain.RED_SAND);
-        SPECIAL_TERRAIN_MAPPING.put(Material.PERMADIRT, Terrain.PERMADIRT);
-        SPECIAL_TERRAIN_MAPPING.put(Material.PODZOL, Terrain.PODZOL);
-        SPECIAL_TERRAIN_MAPPING.put(Material.WHITE_CLAY, Terrain.WHITE_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.ORANGE_CLAY, Terrain.ORANGE_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.MAGENTA_CLAY, Terrain.MAGENTA_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.LIGHT_BLUE_CLAY, Terrain.LIGHT_BLUE_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.YELLOW_CLAY, Terrain.YELLOW_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.LIME_CLAY, Terrain.LIME_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.PINK_CLAY, Terrain.PINK_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.GREY_CLAY, Terrain.GREY_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.LIGHT_GREY_CLAY, Terrain.LIGHT_GREY_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.CYAN_CLAY, Terrain.CYAN_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.PURPLE_CLAY, Terrain.PURPLE_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.BLUE_CLAY, Terrain.BLUE_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.BROWN_CLAY, Terrain.BROWN_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.GREEN_CLAY, Terrain.GREEN_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.RED_CLAY, Terrain.RED_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.BLACK_CLAY, Terrain.BLACK_STAINED_CLAY);
-        SPECIAL_TERRAIN_MAPPING.put(Material.GRANITE, Terrain.GRANITE);
-        SPECIAL_TERRAIN_MAPPING.put(Material.DIORITE, Terrain.DIORITE);
-        SPECIAL_TERRAIN_MAPPING.put(Material.ANDESITE, Terrain.ANDESITE);
-
-        // Make sure the tile entity flag in the block database is consistent
-        // with the tile entity map:
-        Set<Integer> allTerrainBlockIds = new HashSet<>();
-        allTerrainBlockIds.addAll(TERRAIN_MAPPING.keySet());
-        for (int blockId: TERRAIN_MAPPING.keySet()) {
-            if (! Block.BLOCKS[blockId].terrain) {
-                throw new AssertionError("Block " + blockId + " not marked as terrain block!");
-            }
-        }
-        for (Material material: SPECIAL_TERRAIN_MAPPING.keySet()) {
-            allTerrainBlockIds.add(material.blockType);
-            if (! material.block.terrain) {
-                throw new AssertionError("Block " + material.blockType + " not marked as terrain block!");
-            }
-        }
-        for (Block block: Block.BLOCKS) {
-            if (block.terrain && (! allTerrainBlockIds.contains(block.id))) {
-                throw new AssertionError("Block " + block.id + " marked as terrain but not present in terrain type map!");
-            }
-        }
-        
-        // Gather natural blocks:
-        for (Block block: Block.BLOCKS) {
-            if (block.natural) {
-                NATURAL_BLOCKS.set(block.id);
-            }
-        }
-
-        // Consider dungeons as natural for historical reasons:
-        NATURAL_BLOCKS.set(BLK_MONSTER_SPAWNER);
-        NATURAL_BLOCKS.set(BLK_CHEST);
-        NATURAL_BLOCKS.set(BLK_COBBLESTONE);
-        NATURAL_BLOCKS.set(BLK_MOSSY_COBBLESTONE);
+        TERRAIN_MAPPING.put(MC_STONE, Terrain.STONE);
+        TERRAIN_MAPPING.put(MC_ANDESITE, Terrain.STONE);
+        TERRAIN_MAPPING.put(MC_DIORITE, Terrain.STONE);
+        TERRAIN_MAPPING.put(MC_GRANITE, Terrain.STONE);
+        TERRAIN_MAPPING.put(MC_GRASS_BLOCK, Terrain.BARE_GRASS);
+        TERRAIN_MAPPING.put(MC_DIRT, Terrain.DIRT);
+        TERRAIN_MAPPING.put(MC_COARSE_DIRT, Terrain.PERMADIRT);
+        TERRAIN_MAPPING.put(MC_PODZOL, Terrain.PODZOL);
+        TERRAIN_MAPPING.put(MC_FARMLAND, Terrain.DIRT);
+        TERRAIN_MAPPING.put(MC_BEDROCK, Terrain.BEDROCK);
+        TERRAIN_MAPPING.put(MC_SAND, Terrain.SAND);
+        TERRAIN_MAPPING.put(MC_RED_SAND, Terrain.RED_SAND);
+        TERRAIN_MAPPING.put(MC_GRAVEL, Terrain.GRAVEL);
+        TERRAIN_MAPPING.put(MC_GOLD_ORE, Terrain.STONE);
+        TERRAIN_MAPPING.put(MC_IRON_ORE, Terrain.STONE);
+        TERRAIN_MAPPING.put(MC_COAL_ORE, Terrain.STONE);
+        TERRAIN_MAPPING.put(MC_LAPIS_ORE, Terrain.STONE);
+        TERRAIN_MAPPING.put(MC_DIAMOND_ORE, Terrain.STONE);
+        TERRAIN_MAPPING.put(MC_REDSTONE_ORE, Terrain.STONE);
+        TERRAIN_MAPPING.put(MC_INFESTED_STONE, Terrain.STONE);
+        TERRAIN_MAPPING.put(MC_SANDSTONE, Terrain.SANDSTONE);
+        TERRAIN_MAPPING.put(MC_RED_SANDSTONE, Terrain.RED_SANDSTONE);
+        TERRAIN_MAPPING.put(MC_OBSIDIAN, Terrain.OBSIDIAN);
+        TERRAIN_MAPPING.put(MC_SNOW_BLOCK, Terrain.DEEP_SNOW);
+        TERRAIN_MAPPING.put(MC_CLAY, Terrain.CLAY);
+        TERRAIN_MAPPING.put(MC_NETHERRACK, Terrain.NETHERRACK);
+        TERRAIN_MAPPING.put(MC_NETHER_QUARTZ_ORE, Terrain.NETHERRACK);
+        TERRAIN_MAPPING.put(MC_SOUL_SAND, Terrain.SOUL_SAND);
+        TERRAIN_MAPPING.put(MC_MYCELIUM, Terrain.MYCELIUM);
+        TERRAIN_MAPPING.put(MC_END_STONE, Terrain.END_STONE);
+        TERRAIN_MAPPING.put(MC_TERRACOTTA, Terrain.HARDENED_CLAY);
+        TERRAIN_MAPPING.put(MC_GRASS_PATH, Terrain.GRASS_PATH);
+        TERRAIN_MAPPING.put(MC_MAGMA_BLOCK, Terrain.MAGMA); // TODO: or should this be mapped to stone and magma added to the Resources layer?
+        TERRAIN_MAPPING.put(MC_WHITE_TERRACOTTA, Terrain.WHITE_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_ORANGE_TERRACOTTA, Terrain.ORANGE_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_MAGENTA_TERRACOTTA, Terrain.MAGENTA_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_LIGHT_BLUE_TERRACOTTA, Terrain.LIGHT_BLUE_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_YELLOW_TERRACOTTA, Terrain.YELLOW_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_LIME_TERRACOTTA, Terrain.LIME_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_PINK_TERRACOTTA, Terrain.PINK_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_GRAY_TERRACOTTA, Terrain.GREY_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_LIGHT_GRAY_TERRACOTTA, Terrain.LIGHT_GREY_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_CYAN_TERRACOTTA, Terrain.CYAN_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_PURPLE_TERRACOTTA, Terrain.PURPLE_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_BLUE_TERRACOTTA, Terrain.BLUE_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_BROWN_TERRACOTTA, Terrain.BROWN_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_GREEN_TERRACOTTA, Terrain.GREEN_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_RED_TERRACOTTA, Terrain.RED_STAINED_CLAY);
+        TERRAIN_MAPPING.put(MC_BLACK_TERRACOTTA, Terrain.BLACK_STAINED_CLAY);
     }
-    
-    public enum ReadOnlyOption {NONE, MAN_MADE, MAN_MADE_ABOVE_GROUND, ALL}
+
+    static {
+        TERRAIN_MAPPING.forEach((name, terrain) -> {
+            if (! Material.getDefault(name).terrain) {
+                throw new IllegalStateException("Material named \"" + name + "\" not marked as terrain");
+            }
+        });
+        Material.getAllMaterials().forEach(material -> {
+            if (material.terrain && (material.namespace != LEGACY) && (! TERRAIN_MAPPING.containsKey(material.name))) {
+                throw new IllegalStateException("Material \"" + material + "\" missing from terrain mapping%n");
+            }
+        });
+    }
 }

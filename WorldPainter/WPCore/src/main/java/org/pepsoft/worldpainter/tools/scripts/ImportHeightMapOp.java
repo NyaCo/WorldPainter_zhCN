@@ -33,13 +33,14 @@ import org.pepsoft.worldpainter.themes.Theme;
 
 import java.util.Random;
 
-import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_2;
+import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_ANVIL;
 import static org.pepsoft.worldpainter.DefaultPlugin.JAVA_ANVIL;
 
 /**
  *
  * @author SchmitzP
  */
+@SuppressWarnings("unused") // Used from scripts
 public class ImportHeightMapOp extends AbstractOperation<World2> {
     protected ImportHeightMapOp(ScriptingContext context) {
         super(context);
@@ -81,6 +82,12 @@ public class ImportHeightMapOp extends AbstractOperation<World2> {
         return this;
     }
 
+    public ImportHeightMapOp withWaterLevel(int level) throws ScriptException {
+        waterLevel = level;
+        importer.setWorldWaterLevel(level);
+        return this;
+    }
+
     @Override
     public World2 go() throws ScriptException {
         goCalled();
@@ -97,7 +104,7 @@ public class ImportHeightMapOp extends AbstractOperation<World2> {
         }
         importer.setHeightMap(adjustedHeightMap);
         importer.setImageFile(heightMap.getImageFile());
-        HeightMapTileFactory tileFactory = TileFactoryFactory.createNoiseTileFactory(new Random().nextLong(), Terrain.GRASS, DEFAULT_MAX_HEIGHT_2, 58, 62, false, true, 20, 1.0);
+        HeightMapTileFactory tileFactory = TileFactoryFactory.createNoiseTileFactory(new Random().nextLong(), Terrain.GRASS, DEFAULT_MAX_HEIGHT_ANVIL, 58, waterLevel, false, true, 20, 1.0);
         Theme defaults = Configuration.getInstance().getHeightMapDefaultTheme();
         if (defaults != null) {
             tileFactory.setTheme(defaults);
@@ -122,5 +129,5 @@ public class ImportHeightMapOp extends AbstractOperation<World2> {
     private final HeightMapImporter importer = new HeightMapImporter();
     private BitmapHeightMap heightMap;
     private boolean fromLevelsSpecified, toLevelsSpecified;
-    private int scale = 100, offsetX, offsetY;
+    private int scale = 100, waterLevel = 62, offsetX, offsetY;
 }

@@ -429,7 +429,6 @@ public class TileSelector extends javax.swing.JPanel {
         buttonOrigin.setText("定位至地图中心");
         buttonOrigin.addActionListener(this::buttonOriginActionPerformed);
 
-
         buttonSelectAll.setText("选择所有区块");
         buttonSelectAll.setEnabled(false);
         buttonSelectAll.addActionListener(this::buttonSelectAllActionPerformed);
@@ -501,7 +500,7 @@ public class TileSelector extends javax.swing.JPanel {
     private javax.swing.JPanel jPanel1;
     // End of variables declaration//GEN-END:variables
 
-    private final WPTileSelectionViewer viewer = new WPTileSelectionViewer(false, Math.max(Runtime.getRuntime().availableProcessors() - 1, 1), true);
+    private final WPTileSelectionViewer viewer = new WPTileSelectionViewer(false, true);
     private final List<Listener> listeners = new ArrayList<>();
     private Dimension dimension;
     private ColourScheme colourScheme;

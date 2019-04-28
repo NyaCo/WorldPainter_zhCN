@@ -12,9 +12,7 @@ import ch.qos.logback.core.joran.spi.JoranException;
 import ch.qos.logback.core.util.StatusPrinter;
 import org.pepsoft.util.PluginManager;
 import org.pepsoft.worldpainter.Configuration;
-import org.pepsoft.worldpainter.Platform;
 import org.pepsoft.worldpainter.Version;
-import org.pepsoft.worldpainter.plugins.PlatformManager;
 import org.pepsoft.worldpainter.plugins.WPPluginManager;
 import org.pepsoft.worldpainter.tools.scripts.ScriptingContext;
 import org.slf4j.LoggerFactory;
@@ -127,13 +125,6 @@ public class ScriptingTool {
             logger.error("Trusted root certificate not available; not loading plugins");
         }
         WPPluginManager.initialise(config.getUuid());
-
-        // Load all the platform descriptors to ensure that when worlds
-        // containing older versions of them are loaded later they are replaced
-        // with the current versions, rather than the other way around
-        for (Platform platform : PlatformManager.getInstance().getAllPlatforms()) {
-            logger.info("Available platform: {}", platform.displayName);
-        }
 
         if (args.length > 1) {
             System.err.print("Executing script \"" + scriptFileName + "\" with arguments ");

@@ -10,6 +10,7 @@
  */
 package org.pepsoft.worldpainter;
 
+import org.pepsoft.minecraft.Material;
 import org.pepsoft.util.ProgressReceiver;
 import org.pepsoft.util.ProgressReceiver.OperationCancelled;
 import org.pepsoft.util.swing.ProgressDialog;
@@ -22,7 +23,8 @@ import org.pepsoft.worldpainter.layers.exporters.ResourcesExporter.ResourcesExpo
 import javax.swing.*;
 import java.awt.*;
 
-import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_2;
+import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_ANVIL;
+import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_MCREGION;
 import static org.pepsoft.util.swing.ProgressDialog.NOT_CANCELABLE;
 
 /**
@@ -67,13 +69,25 @@ public class ChangeHeightDialog extends WorldPainterDialog {
         buttonOK.setEnabled((oldMaxHeight != newMaxHeight) || (translate && ((Integer) spinnerTranslateAmount.getValue() != 0)) || (scale && ((Integer) spinnerScaleAmount.getValue() != 100)));
         spinnerTranslateAmount.setEnabled(translate);
         spinnerScaleAmount.setEnabled(scale);
-        labelWarning.setVisible(newMaxHeight != DEFAULT_MAX_HEIGHT_2);
+        switch (newMaxHeight) {
+            case DEFAULT_MAX_HEIGHT_MCREGION:
+                labelWarning.setText("Only Minecraft 1.1!");
+                labelWarning.setVisible(true);
+                break;
+            case DEFAULT_MAX_HEIGHT_ANVIL:
+                labelWarning.setVisible(false);
+                break;
+            default:
+                labelWarning.setText("Only Minecraft 1.1, with mods!");
+                labelWarning.setVisible(true);
+                break;
+        }
     }
     
     private void doResize() {
         int oldMaxHeight = world.getMaxHeight();
         int newMaxHeight = Integer.parseInt((String) comboBoxNewHeight.getSelectedItem());
-        if ((newMaxHeight != oldMaxHeight) && (world.getImportedFrom() != null) && (JOptionPane.showConfirmDialog(this, "<html>This world was imported from an existing map!<br>Are you <i>sure</i> you want to change the height?<br>You will not be able to merge it back to the existing map any more!</html>", "Import from Existing Map", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION)) {
+        if ((newMaxHeight != oldMaxHeight) && (world.getImportedFrom() != null) && (JOptionPane.showConfirmDialog(this, "<html>这个世界是从一个现存的地图导入的！<br>你<i>确定</i>要改变高度吗？<br>你将无法将其嵌入到原地图！</html>", "从现存地图导入", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION)) {
             return;
         }
         boolean scale = checkBoxScale.isSelected();
@@ -131,15 +145,15 @@ public class ChangeHeightDialog extends WorldPainterDialog {
                             }
                             ResourcesExporterSettings resourcesSettings = (ResourcesExporterSettings) dim.getLayerSettings(Resources.INSTANCE);
                             if (resourcesSettings != null) {
-                                for (int blockType: resourcesSettings.getBlockTypes()) {
-                                    int maxLevel = resourcesSettings.getMaxLevel(blockType);
+                                for (Material material: resourcesSettings.getMaterials()) {
+                                    int maxLevel = resourcesSettings.getMaxLevel(material);
                                     if (maxLevel == (oldMaxHeight - 1)) {
                                         maxLevel = newMaxHeight - 1;
                                     } else if (maxLevel > 1) {
                                         maxLevel = clamp(transform.transformHeight(maxLevel), newMaxHeight - 1);
                                     }
-                                    resourcesSettings.setMaxLevel(blockType, maxLevel);
-                                    resourcesSettings.setMaxLevel(blockType, clamp(transform.transformHeight(resourcesSettings.getMaxLevel(blockType)), newMaxHeight - 1));
+                                    resourcesSettings.setMaxLevel(material, maxLevel);
+                                    resourcesSettings.setMaxLevel(material, clamp(transform.transformHeight(resourcesSettings.getMaxLevel(material)), newMaxHeight - 1));
                                 }
                             }
                             dim.clearUndo();
@@ -214,7 +228,6 @@ public class ChangeHeightDialog extends WorldPainterDialog {
         buttonOK.setEnabled(false);
         buttonOK.addActionListener(this::buttonOKActionPerformed);
 
-
         jLabel5.setText("地面和水平面高度：");
 
         spinnerTranslateAmount.setModel(new javax.swing.SpinnerNumberModel(0, -127, 127, 1));
@@ -236,7 +249,6 @@ public class ChangeHeightDialog extends WorldPainterDialog {
         checkBoxTranslate.setText("位移");
         checkBoxTranslate.setToolTipText("<html>以指定的方块数量抬升或降低地图高度；<br>\n负值表示降低；（仍然）过高或过低的部分会被切除。</html>");
         checkBoxTranslate.addChangeListener(this::checkBoxTranslateStateChanged);
-
 
         jLabel6.setText("<html><b>注意：</b>此操作无法撤销！</html>");
 

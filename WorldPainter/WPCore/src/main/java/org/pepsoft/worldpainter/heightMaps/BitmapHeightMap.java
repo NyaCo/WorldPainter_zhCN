@@ -108,7 +108,7 @@ public final class BitmapHeightMap extends AbstractHeightMap {
     }
 
     /**
-     * Private version of {@link #getHeight(float, float)}} which extends the
+     * Private version of {@link #getHeight(int, int)}} which extends the
      * edge pixels of the image if it is non-repeating, to make the bicubic
      * interpolation work correctly around the edges.
      */
@@ -197,8 +197,8 @@ public final class BitmapHeightMap extends AbstractHeightMap {
     /**
      * Cubic interpolation using Catmull-Rom splines.
      */
-    private float cubicInterpolate(float y0, float y1, float y2, float y3, float mu) {
-        return y1 + 0.5f * mu * (y2 - y0 + mu * (2.0f * y0 - 5.0f * y1 + 4.0f * y2 - y3 + mu * (3.0f * (y1 - y2) + y3 - y0)));
+    private float cubicInterpolate(float y0, float y1, float y2, float y3, float μ) {
+        return y1 + 0.5f * μ * (y2 - y0 + μ * (2.0f * y0 - 5.0f * y1 + 4.0f * y2 - y3 + μ * (3.0f * (y1 - y2) + y3 - y0)));
     }
 
     private BufferedImage image;

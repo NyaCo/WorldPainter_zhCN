@@ -47,11 +47,9 @@ import org.pepsoft.worldpainter.operations.*;
 import org.pepsoft.worldpainter.painting.Paint;
 import org.pepsoft.worldpainter.painting.*;
 import org.pepsoft.worldpainter.panels.BrushOptions;
-import org.pepsoft.worldpainter.panels.BrushOptions.Listener;
 import org.pepsoft.worldpainter.panels.DefaultFilter;
 import org.pepsoft.worldpainter.panels.InfoPanel;
 import org.pepsoft.worldpainter.plugins.CustomLayerProvider;
-import org.pepsoft.worldpainter.plugins.PlatformManager;
 import org.pepsoft.worldpainter.plugins.WPPluginManager;
 import org.pepsoft.worldpainter.selection.*;
 import org.pepsoft.worldpainter.threedeeview.ThreeDeeFrame;
@@ -111,15 +109,14 @@ import static org.pepsoft.worldpainter.Platform.Capability.SET_SPAWN_POINT;
 import static org.pepsoft.worldpainter.Terrain.*;
 import static org.pepsoft.worldpainter.TileRenderer.FLUIDS_AS_LAYER;
 import static org.pepsoft.worldpainter.TileRenderer.TERRAIN_AS_LAYER;
-
-//import javax.swing.JSeparator;
+import static org.pepsoft.worldpainter.World2.*;
 
 /**
  *
  * @author pepijn
  */
 public final class App extends JFrame implements RadiusControl,
-        BiomesViewerFrame.SeedListener, Listener, CustomBiomeListener,
+        BiomesViewerFrame.SeedListener, BrushOptions.Listener, CustomBiomeListener,
         PaletteManager.ButtonProvider, DockableHolder, PropertyChangeListener, Dimension.Listener, Tile.Listener {
     private App() {
         super((mode == Mode.WORLDPAINTER) ? "WorldPainter" : "MinecraftMapEditor"); // NOI18N
@@ -372,14 +369,6 @@ public final class App extends JFrame implements RadiusControl,
             }
             lastSaveTimestamp = now;
             lastChangeTimestamp = now;
-            // Refresh the platform if we have the plugin, as the capabilities may have changed
-            Platform stalePlatform = world.getPlatform();
-            for (Platform freshPlatform: PlatformManager.getInstance().getAllPlatforms()) {
-                if (freshPlatform.equals(stalePlatform)) {
-                    world.setPlatform(freshPlatform);
-                    break;
-                }
-            }
             world.addPropertyChangeListener(this);
 
             loadCustomTerrains();
@@ -513,7 +502,7 @@ public final class App extends JFrame implements RadiusControl,
             // have fixed the problem manually in 1.9.0 or 1.9.1, in which we
             // neglected to do it automatically)
             if (dimension.isFixOverlayCoords()) {
-                Toolkit.getDefaultToolkit().beep();
+                DesktopUtils.beep();
                 if (showConfirmDialog(this,
                         "This world was created in an older version of WorldPainter\n" +
                         "in which the overlay offsets were not stored correctly.\n" +
@@ -879,18 +868,18 @@ public final class App extends JFrame implements RadiusControl,
             private void appendMetadata(StringBuilder sb, Map<String, Object> metadata) {
                 for (Map.Entry<String, Object> entry: metadata.entrySet()) {
                     switch (entry.getKey()) {
-                        case World2.METADATA_KEY_WP_VERSION:
+                        case METADATA_KEY_WP_VERSION:
                             sb.append("Saved with WorldPainter ").append(entry.getValue());
-                            String build = (String) metadata.get(World2.METADATA_KEY_WP_BUILD);
+                            String build = (String) metadata.get(METADATA_KEY_WP_BUILD);
                             if (build != null) {
                                 sb.append(" (").append(build).append(')');
                             }
                             sb.append('\n');
                             break;
-                        case World2.METADATA_KEY_TIMESTAMP:
+                        case METADATA_KEY_TIMESTAMP:
                             sb.append("Saved on ").append(SimpleDateFormat.getDateTimeInstance().format((Date) entry.getValue())).append('\n');
                             break;
-                        case World2.METADATA_KEY_PLUGINS:
+                        case METADATA_KEY_PLUGINS:
                             String[][] plugins = (String[][]) entry.getValue();
                             for (String[] plugin: plugins) {
                                 sb.append("Plugin: ").append(plugin[0]).append(" (").append(plugin[1]).append(")\n");
@@ -972,10 +961,21 @@ public final class App extends JFrame implements RadiusControl,
             event.setAttribute(ATTRIBUTE_KEY_IMPORTED_WORLD, true);
         }
         config.logEvent(event);
-        
-        Set<World2.Warning> warnings = newWorld.getWarnings();
+
+        if (Version.isSnapshot()
+                && (newWorld.getMetadata() != null)
+                && newWorld.getMetadata().containsKey(METADATA_KEY_WP_VERSION)
+                && (! ((String) newWorld.getMetadata().get(METADATA_KEY_WP_VERSION)).contains("SNAPSHOT"))) {
+            DesktopUtils.beep();
+            showMessageDialog(this, "You are running a snapshot version of WorldPainter.\n" +
+                    "This file was last saved by a regular version of WorldPainter.\n" +
+                    "If you save the file with this version, you may no longer be able to open it\n" +
+                    "using a regular version of WorldPainter!", "Loading Non-snapshot World", WARNING_MESSAGE);
+        }
+
+        Set<Warning> warnings = newWorld.getWarnings();
         if ((warnings != null) && (! warnings.isEmpty())) {
-            for (World2.Warning warning: warnings) {
+            for (Warning warning: warnings) {
                 switch (warning) {
                     case AUTO_BIOMES_DISABLED:
                         if (showOptionDialog(this, "Automatic Biomes were previously enabled for this world but have been disabled.\nPress More Info for more information, including how to reenable it.", "Automatic Biomes Disabled", DEFAULT_OPTION, WARNING_MESSAGE, null, new Object[] {"More Info", "OK"}, "OK") == 0) {
@@ -999,10 +999,10 @@ public final class App extends JFrame implements RadiusControl,
             }
         }
         
-        if (newWorld.isAskToConvertToAnvil() && (newWorld.getMaxHeight() == DEFAULT_MAX_HEIGHT_1) && (newWorld.getImportedFrom() == null)) {
+        if (newWorld.isAskToConvertToAnvil() && (newWorld.getMaxHeight() == DEFAULT_MAX_HEIGHT_MCREGION) && (newWorld.getImportedFrom() == null)) {
             if (showConfirmDialog(this, strings.getString("this.world.is.128.blocks.high"), strings.getString("convert.world.height"), YES_NO_OPTION) == YES_OPTION) {
-                ChangeHeightDialog.resizeWorld(newWorld, HeightTransform.IDENTITY, DEFAULT_MAX_HEIGHT_2, this);
-                newWorld.addHistoryEntry(HistoryEntry.WORLD_MAX_HEIGHT_CHANGED, DEFAULT_MAX_HEIGHT_2);
+                ChangeHeightDialog.resizeWorld(newWorld, HeightTransform.IDENTITY, DEFAULT_MAX_HEIGHT_ANVIL, this);
+                newWorld.addHistoryEntry(HistoryEntry.WORLD_MAX_HEIGHT_CHANGED, DEFAULT_MAX_HEIGHT_ANVIL);
                 // Force the version to "Anvil" if it was previously exported
                 // with the old format
                 if (newWorld.getPlatform() != null) {
@@ -1384,7 +1384,7 @@ public final class App extends JFrame implements RadiusControl,
                 rotateAutosaveFile();
             } catch (RuntimeException | Error e) {
                 logger.error("An exception occurred while trying to rotate the autosave", e);
-                Toolkit.getDefaultToolkit().beep();
+                DesktopUtils.beep();
                 JOptionPane.showMessageDialog(this, "An error occurred while trying to clear the autosave.\nWorldPainter may try to load the autosave on the next start.\nIf this keeps happening, please report it to the author.", "Clearing Autosave Failed", JOptionPane.WARNING_MESSAGE);
             }
             return true;
@@ -1397,10 +1397,10 @@ public final class App extends JFrame implements RadiusControl,
         MixedMaterial material = getCustomMaterial(customMaterialIndex);
         CustomMaterialDialog dialog;
         if (material == null) {
-            material = MixedMaterial.create(BLK_DIRT);
-            dialog = new CustomMaterialDialog(App.this, material, world.isExtendedBlockIds(), selectedColourScheme);
+            material = MixedMaterial.create(world.getPlatform(), Material.DIRT);
+            dialog = new CustomMaterialDialog(App.this, world.getPlatform(), material, world.isExtendedBlockIds(), selectedColourScheme);
         } else {
-            dialog = new CustomMaterialDialog(App.this, material, world.isExtendedBlockIds(), selectedColourScheme);
+            dialog = new CustomMaterialDialog(App.this, world.getPlatform(), material, world.isExtendedBlockIds(), selectedColourScheme);
         }
         dialog.setVisible(true);
         if (! dialog.isCancelled()) {
@@ -1498,8 +1498,8 @@ public final class App extends JFrame implements RadiusControl,
         if (button == null) {
             menuItem = new JMenuItem(strings.getString("select.custom.material") + "...");
             menuItem.addActionListener(e -> {
-                MixedMaterial newMaterial = MixedMaterial.create(BLK_DIRT);
-                CustomMaterialDialog dialog = new CustomMaterialDialog(App.this, newMaterial, world.isExtendedBlockIds(), selectedColourScheme);
+                MixedMaterial newMaterial = MixedMaterial.create(world.getPlatform(), Material.DIRT);
+                CustomMaterialDialog dialog = new CustomMaterialDialog(App.this, world.getPlatform(), newMaterial, world.isExtendedBlockIds(), selectedColourScheme);
                 dialog.setVisible(true);
                 if (! dialog.isCancelled()) {
                     newMaterial = MixedMaterialManager.getInstance().register(newMaterial);
@@ -1759,7 +1759,15 @@ public final class App extends JFrame implements RadiusControl,
 
     @Override
     public void setTitle(String title) {
-        super.setTitle(Configuration.getInstance().isSafeMode() ? (title + "【安全模式】") : title);
+        StringBuilder sb = new StringBuilder();
+        sb.append(title);
+        if (Version.isSnapshot()) {
+            sb.append("【快照】");
+        }
+        if (Configuration.getInstance().isSafeMode()) {
+            sb.append("【安全模式】");
+        }
+        super.setTitle(sb.toString());
     }
 
     void exit() {
@@ -1873,7 +1881,7 @@ public final class App extends JFrame implements RadiusControl,
             return;
         }
         Configuration config = Configuration.getInstance();
-        final NewWorldDialog dialog = new NewWorldDialog(this, strings.getString("generated.world"), World2.DEFAULT_OCEAN_SEED, config.getDefaultPlatform(), DIM_NORMAL, config.getDefaultMaxHeight());
+        final NewWorldDialog dialog = new NewWorldDialog(this, strings.getString("generated.world"), DEFAULT_OCEAN_SEED, config.getDefaultPlatform(), DIM_NORMAL, config.getDefaultMaxHeight());
         dialog.setVisible(true);
         if (! dialog.isCancelled()) {
             clearWorld(); // Free up memory of the world and the undo buffer
@@ -2179,7 +2187,7 @@ public final class App extends JFrame implements RadiusControl,
                 rotateAutosaveFile();
             } catch (RuntimeException | Error e) {
                 logger.error("An exception occurred while trying to rotate the autosave", e);
-                Toolkit.getDefaultToolkit().beep();
+                DesktopUtils.beep();
                 JOptionPane.showMessageDialog(this, "An error occurred while trying to clear the autosave.\nWorldPainter may try to load the autosave on the next start.\nIf this keeps happening, please report it to the author.", "Clearing Autosave Failed", JOptionPane.WARNING_MESSAGE);
             }
             lastSelectedFile = file;
@@ -2297,7 +2305,7 @@ public final class App extends JFrame implements RadiusControl,
             lastAutosavedState = world.getChangeNo();
         } catch (RuntimeException | Error e) {
             logger.error("An exception occurred while trying to autosave world", e);
-            Toolkit.getDefaultToolkit().beep();
+            DesktopUtils.beep();
             JOptionPane.showMessageDialog(this, "An error occurred while trying to autosave the world.\nIt has not been autosaved. If this keeps happening,\nplease report it to the author.", "Autosave Failed", JOptionPane.WARNING_MESSAGE);
         }
     }
@@ -2759,7 +2767,7 @@ public final class App extends JFrame implements RadiusControl,
         slopeLabel = new JLabel("坡度：90°");
         slopeLabel.setBorder(new BevelBorder(BevelBorder.LOWERED));
         statusBar.add(slopeLabel);
-        materialLabel = new JLabel(MessageFormat.format(strings.getString("material.0"), "mossy_cobblestone"));
+        materialLabel = new JLabel(MessageFormat.format(strings.getString("material.0"), Material.MOSSY_COBBLESTONE.toString()));
         materialLabel.setBorder(new BevelBorder(BevelBorder.LOWERED));
         statusBar.add(materialLabel);
         waterLabel = new JLabel(MessageFormat.format(strings.getString("fluid.level.1.depth.2"), 9999, 9999));
@@ -2859,7 +2867,7 @@ public final class App extends JFrame implements RadiusControl,
                     dimension.setEventsInhibited(false);
                 }
             } else {
-                Toolkit.getDefaultToolkit().beep();
+                DesktopUtils.beep();
             }
             if (activeOperation instanceof CopySelectionOperation) {
                 deselectTool();
@@ -3057,7 +3065,7 @@ public final class App extends JFrame implements RadiusControl,
         JPopupMenu customLayerMenu = new JPopupMenu();
         JMenuItem menuItem = new JMenuItem(strings.getString("add.a.custom.object.layer") + "...");
         menuItem.addActionListener(e -> {
-            EditLayerDialog<Bo2Layer> dialog = new EditLayerDialog<>(App.this, Bo2Layer.class);
+            EditLayerDialog<Bo2Layer> dialog = new EditLayerDialog<>(App.this, world.getPlatform(), Bo2Layer.class);
             dialog.setVisible(true);
             if (! dialog.isCancelled()) {
                 Bo2Layer layer = dialog.getLayer();
@@ -3071,7 +3079,7 @@ public final class App extends JFrame implements RadiusControl,
         
         menuItem = new JMenuItem(strings.getString("add.a.custom.ground.cover.layer") + "...");
         menuItem.addActionListener(e -> {
-            EditLayerDialog<GroundCoverLayer> dialog = new EditLayerDialog<>(App.this, GroundCoverLayer.class);
+            EditLayerDialog<GroundCoverLayer> dialog = new EditLayerDialog<>(App.this, world.getPlatform(), GroundCoverLayer.class);
             dialog.setVisible(true);
             if (! dialog.isCancelled()) {
                 GroundCoverLayer layer = dialog.getLayer();
@@ -3085,7 +3093,7 @@ public final class App extends JFrame implements RadiusControl,
         
         menuItem = new JMenuItem(strings.getString("add.a.custom.underground.pockets.layer") + "...");
         menuItem.addActionListener(e -> {
-            UndergroundPocketsDialog dialog = new UndergroundPocketsDialog(App.this, MixedMaterial.create(Material.IRON_BLOCK), selectedColourScheme, world.getMaxHeight(), world.isExtendedBlockIds());
+            UndergroundPocketsDialog dialog = new UndergroundPocketsDialog(App.this, world.getPlatform(), MixedMaterial.create(world.getPlatform(), Material.IRON_BLOCK), selectedColourScheme, world.getMaxHeight(), world.isExtendedBlockIds());
             dialog.setVisible(true);
             if (! dialog.isCancelled()) {
                 UndergroundPocketsLayer layer = dialog.getLayer();
@@ -3110,7 +3118,7 @@ public final class App extends JFrame implements RadiusControl,
                 baseHeight = 58;
                 waterLevel = 62;
             }
-            TunnelLayerDialog dialog = new TunnelLayerDialog(App.this, layer, world.isExtendedBlockIds(), selectedColourScheme, dimension.getMaxHeight(), baseHeight, waterLevel);
+            TunnelLayerDialog dialog = new TunnelLayerDialog(App.this, world.getPlatform(), layer, world.isExtendedBlockIds(), selectedColourScheme, dimension.getMaxHeight(), baseHeight, waterLevel);
             dialog.setVisible(true);
             if (! dialog.isCancelled()) {
                 if (paletteName != null) {
@@ -3123,7 +3131,7 @@ public final class App extends JFrame implements RadiusControl,
         
         menuItem = new JMenuItem("添加自定义植被...");
         menuItem.addActionListener(e -> {
-            EditLayerDialog<PlantLayer> dialog = new EditLayerDialog<>(App.this, PlantLayer.class);
+            EditLayerDialog<PlantLayer> dialog = new EditLayerDialog<>(App.this, world.getPlatform(), PlantLayer.class);
             dialog.setVisible(true);
             if (! dialog.isCancelled()) {
                 PlantLayer layer = dialog.getLayer();
@@ -3137,7 +3145,7 @@ public final class App extends JFrame implements RadiusControl,
         
         menuItem = new JMenuItem("添加自定义结合层...");
         menuItem.addActionListener(e -> {
-            EditLayerDialog<CombinedLayer> dialog = new EditLayerDialog<>(App.this, CombinedLayer.class);
+            EditLayerDialog<CombinedLayer> dialog = new EditLayerDialog<>(App.this, world.getPlatform(), CombinedLayer.class);
             dialog.setVisible(true);
             if (! dialog.isCancelled()) {
                 // TODO: get saved layer
@@ -3160,7 +3168,7 @@ public final class App extends JFrame implements RadiusControl,
             for (Class<? extends CustomLayer> customLayerClass: allPluginLayers) {
                 menuItem = new JMenuItem("添加" + customLayerClass.getSimpleName() + "层...");
                 menuItem.addActionListener(e -> {
-                    EditLayerDialog<CustomLayer> dialog = new EditLayerDialog<>(App.this, (Class<CustomLayer>) customLayerClass);
+                    EditLayerDialog<CustomLayer> dialog = new EditLayerDialog<>(App.this, world.getPlatform(), (Class<CustomLayer>) customLayerClass);
                     dialog.setVisible(true);
                     if (! dialog.isCancelled()) {
                         // TODO: get saved layer
@@ -3667,9 +3675,9 @@ public final class App extends JFrame implements RadiusControl,
             private <L extends CustomLayer> AbstractEditLayerDialog<L> createDialog(L layer) {
                 AbstractEditLayerDialog<L> dialog;
                 if ((layer instanceof Bo2Layer) || (layer instanceof GroundCoverLayer) || (layer instanceof CombinedLayer) || (layer instanceof PlantLayer)) {
-                    dialog = new EditLayerDialog<>(App.this, layer);
+                    dialog = new EditLayerDialog<>(App.this, world.getPlatform(), layer);
                 } else if (layer instanceof UndergroundPocketsLayer) {
-                    dialog = (AbstractEditLayerDialog<L>) new UndergroundPocketsDialog(App.this, (UndergroundPocketsLayer) layer, selectedColourScheme, dimension.getMaxHeight(), world.isExtendedBlockIds());
+                    dialog = (AbstractEditLayerDialog<L>) new UndergroundPocketsDialog(App.this, world.getPlatform(), (UndergroundPocketsLayer) layer, selectedColourScheme, dimension.getMaxHeight(), world.isExtendedBlockIds());
                 } else if (layer instanceof TunnelLayer) {
                     final int baseHeight, waterLevel;
                     final TileFactory tileFactory = dimension.getTileFactory();
@@ -3680,7 +3688,7 @@ public final class App extends JFrame implements RadiusControl,
                         baseHeight = 58;
                         waterLevel = 62;
                     }
-                    dialog = (AbstractEditLayerDialog<L>) new TunnelLayerDialog(App.this, (TunnelLayer) layer, world.isExtendedBlockIds(), selectedColourScheme, dimension.getMaxHeight(), baseHeight, waterLevel);
+                    dialog = (AbstractEditLayerDialog<L>) new TunnelLayerDialog(App.this, world.getPlatform(), (TunnelLayer) layer, world.isExtendedBlockIds(), selectedColourScheme, dimension.getMaxHeight(), baseHeight, waterLevel);
                 } else {
                     throw new IllegalArgumentException("Don't know how to create dialog for layer " + layer.getName());
                 }
@@ -4104,7 +4112,7 @@ public final class App extends JFrame implements RadiusControl,
                                 rotateAutosaveFile();
                             } catch (RuntimeException | Error e2) {
                                 logger.error("An exception occurred while trying to rotate the autosave", e2);
-                                Toolkit.getDefaultToolkit().beep();
+                                DesktopUtils.beep();
                                 JOptionPane.showMessageDialog(this, "An error occurred while trying to clear the autosave.\nWorldPainter may try to load the autosave on the next start.\nIf this keeps happening, please report it to the author.", "Clearing Autosave Failed", JOptionPane.WARNING_MESSAGE);
                             }
                         }
@@ -4308,7 +4316,7 @@ public final class App extends JFrame implements RadiusControl,
             File brushesDir = new File(Configuration.getConfigDir(), "brushes");
             if (! brushesDir.exists()) {
                 if (! brushesDir.mkdirs()) {
-                    Toolkit.getDefaultToolkit().beep();
+                    DesktopUtils.beep();
                     return;
                 }
             }
@@ -4322,7 +4330,7 @@ public final class App extends JFrame implements RadiusControl,
             File pluginsDir = new File(Configuration.getConfigDir(), "plugins");
             if (! pluginsDir.exists()) {
                 if (! pluginsDir.mkdirs()) {
-                    Toolkit.getDefaultToolkit().beep();
+                    DesktopUtils.beep();
                     return;
                 }
             }
@@ -4361,7 +4369,7 @@ public final class App extends JFrame implements RadiusControl,
                 biomesViewerFrame.requestFocus();
             } else {
                 int preferredAlgorithm = -1;
-                if ((dimension != null) && (dimension.getDim() == DIM_NORMAL) && (dimension.getMaxHeight() == DEFAULT_MAX_HEIGHT_2)) {
+                if ((dimension != null) && (dimension.getDim() == DIM_NORMAL) && (dimension.getMaxHeight() == DEFAULT_MAX_HEIGHT_ANVIL)) {
                     if (world.getGenerator() == Generator.LARGE_BIOMES) {
                         preferredAlgorithm = BIOME_ALGORITHM_1_7_LARGE;
                     } else {
@@ -4967,7 +4975,7 @@ public final class App extends JFrame implements RadiusControl,
                     operation.setActive(true);
                 } catch (PropertyVetoException e) {
                     deselectTool();
-                    Toolkit.getDefaultToolkit().beep();
+                    DesktopUtils.beep();
                     return;
                 }
                 if (closeCallout("callout_1")) {
@@ -5462,7 +5470,7 @@ public final class App extends JFrame implements RadiusControl,
                             rotateAutosaveFile();
                         } catch (RuntimeException | Error e2) {
                             logger.error("An exception occurred while trying to rotate the autosave", e2);
-                            Toolkit.getDefaultToolkit().beep();
+                            DesktopUtils.beep();
                             JOptionPane.showMessageDialog(this, "An error occurred while trying to clear the autosave.\nWorldPainter may try to load the autosave on the next start.\n如果这种情况持续出现，请向作者反馈。", "Clearing Autosave Failed", JOptionPane.WARNING_MESSAGE);
                         }
                     }
@@ -5886,18 +5894,18 @@ public final class App extends JFrame implements RadiusControl,
                 private void appendMetadata(StringBuilder sb, Map<String, Object> metadata) {
                     for (Map.Entry<String, Object> entry: metadata.entrySet()) {
                         switch (entry.getKey()) {
-                            case World2.METADATA_KEY_WP_VERSION:
+                            case METADATA_KEY_WP_VERSION:
                                 sb.append("Saved with WorldPainter ").append(entry.getValue());
-                                String build = (String) metadata.get(World2.METADATA_KEY_WP_BUILD);
+                                String build = (String) metadata.get(METADATA_KEY_WP_BUILD);
                                 if (build != null) {
                                     sb.append(" (").append(build).append(')');
                                 }
                                 sb.append('\n');
                                 break;
-                            case World2.METADATA_KEY_TIMESTAMP:
+                            case METADATA_KEY_TIMESTAMP:
                                 sb.append("Saved on ").append(SimpleDateFormat.getDateTimeInstance().format((Date) entry.getValue())).append('\n');
                                 break;
-                            case World2.METADATA_KEY_PLUGINS:
+                            case METADATA_KEY_PLUGINS:
                                 String[][] plugins = (String[][]) entry.getValue();
                                 for (String[] plugin: plugins) {
                                     sb.append("Plugin: ").append(plugin[0]).append(" (").append(plugin[1]).append(")\n");
@@ -6255,7 +6263,7 @@ public final class App extends JFrame implements RadiusControl,
             pauseAutosave();
             try {
                 if (world.getImportedFrom() != null) {
-                    Toolkit.getDefaultToolkit().beep();
+                    DesktopUtils.beep();
                     if (showConfirmDialog(App.this, strings.getString("this.is.an.imported.world"), strings.getString("imported"), YES_NO_OPTION, WARNING_MESSAGE) != YES_OPTION) {
                         return;
                     }
@@ -6475,7 +6483,7 @@ public final class App extends JFrame implements RadiusControl,
             if ((currentUndoManager != null) && currentUndoManager.undo()) {
                 currentUndoManager.armSavePoint();
             } else {
-                Toolkit.getDefaultToolkit().beep();
+                DesktopUtils.beep();
             }
         }
 
@@ -6493,7 +6501,7 @@ public final class App extends JFrame implements RadiusControl,
             if ((currentUndoManager != null) && currentUndoManager.redo()) {
                 currentUndoManager.armSavePoint();
             } else {
-                Toolkit.getDefaultToolkit().beep();
+                DesktopUtils.beep();
             }
         }
 
@@ -6569,7 +6577,7 @@ public final class App extends JFrame implements RadiusControl,
             long previousMinecraftSeed = dimension.getMinecraftSeed();
             int previousCeilingHeight = dimension.getCeilingHeight();
             boolean previousBedrockWall = dimension.isBedrockWall();
-            World2.BorderSettings previousBorderSettings = (dimension.getWorld() != null) ? dimension.getWorld().getBorderSettings().clone() : null;
+            BorderSettings previousBorderSettings = (dimension.getWorld() != null) ? dimension.getWorld().getBorderSettings().clone() : null;
             Dimension.LayerAnchor previousTopLayerAnchor = dimension.getTopLayerAnchor();
             DimensionPropertiesDialog dialog = new DimensionPropertiesDialog(App.this, dimension, selectedColourScheme);
             dialog.setVisible(true);
@@ -6971,7 +6979,7 @@ public final class App extends JFrame implements RadiusControl,
                     return;
                 }
             }
-            Toolkit.getDefaultToolkit().beep();
+            DesktopUtils.beep();
         }
 
         private static final long serialVersionUID = 1L;

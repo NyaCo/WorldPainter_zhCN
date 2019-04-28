@@ -96,12 +96,12 @@ public class NewWorldDialog2 extends javax.swing.JDialog {
             // With hills
             heightMap = new SumHeightMap(heightMap, hills);
         }
-//        Theme theme = new FancyTheme(org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_2, waterLevel, heightMap, Terrain.GRASS);
+//        Theme theme = new FancyTheme(org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_ANVIL, waterLevel, heightMap, Terrain.GRASS);
         SortedMap<Integer, Terrain> terrainRanges = new TreeMap<>();
         terrainRanges.put(-1, Terrain.BEACHES);
         terrainRanges.put(waterLevel - 4, Terrain.GRASS);
-        Theme theme = new SimpleTheme(seed, waterLevel, terrainRanges, null, org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_2, true, true);
-        return new HeightMapTileFactory(seed, heightMap, org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_2, false, theme);
+        Theme theme = new SimpleTheme(seed, waterLevel, terrainRanges, null, org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_ANVIL, true, true);
+        return new HeightMapTileFactory(seed, heightMap, org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_ANVIL, false, theme);
     }
 
     private void schedulePreviewUpdate() {
@@ -202,7 +202,6 @@ public class NewWorldDialog2 extends javax.swing.JDialog {
 
         spinnerOceanSize.addChangeListener(this::spinnerOceanSizeStateChanged);
 
-
         jLabel10.setText("世界外");
 
         buttonGroup4.add(jRadioButton7);
@@ -217,7 +216,6 @@ public class NewWorldDialog2 extends javax.swing.JDialog {
         jRadioButton9.setSelected(true);
         jRadioButton9.setText("Minecraft陆地");
         jRadioButton9.addActionListener(this::jRadioButton9ActionPerformed);
-
 
         jLabel11.setText("世界种子");
 

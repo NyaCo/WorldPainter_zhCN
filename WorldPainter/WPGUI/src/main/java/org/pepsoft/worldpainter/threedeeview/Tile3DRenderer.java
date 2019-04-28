@@ -149,9 +149,9 @@ public class Tile3DRenderer {
                             Material material = nextMaterial;
                             if (z < maxZ) {
                                 nextMaterial = terrain.getMaterial(seed, blockX, blockY, z + 1, terrainHeight);
-                                if (!nextMaterial.block.veryInsubstantial) {
+                                if (! nextMaterial.veryInsubstantial) {
                                     // Block above is solid
-                                    if ((material == Material.GRASS) || (material == Material.MYCELIUM) || (material == Material.TILLED_DIRT)) {
+                                    if ((material == Material.GRASS_BLOCK) || (material == Material.MYCELIUM) || (material == Material.FARMLAND)) {
                                         material = Material.DIRT;
                                     }
                                 }

@@ -10,9 +10,11 @@
  */
 package org.pepsoft.worldpainter;
 
+import org.pepsoft.worldpainter.Dimension.LayerAnchor;
 import org.pepsoft.worldpainter.layers.*;
 import org.pepsoft.worldpainter.layers.exporters.AnnotationsExporter.AnnotationsSettings;
 import org.pepsoft.worldpainter.layers.exporters.CavernsExporter.CavernsSettings;
+import org.pepsoft.worldpainter.layers.exporters.CavesExporter.CavesSettings;
 import org.pepsoft.worldpainter.layers.exporters.ChasmsExporter.ChasmsSettings;
 import org.pepsoft.worldpainter.layers.exporters.FrostExporter.FrostSettings;
 import org.pepsoft.worldpainter.layers.exporters.ResourcesExporter.ResourcesExporterSettings;
@@ -25,8 +27,7 @@ import javax.swing.JSpinner.NumberEditor;
 import javax.swing.event.ListSelectionEvent;
 import java.util.*;
 
-import static org.pepsoft.minecraft.Constants.*;
-import org.pepsoft.worldpainter.Dimension.LayerAnchor;
+import static org.pepsoft.minecraft.Material.*;
 
 /**
  *
@@ -267,7 +268,31 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
 //            borderSettings.setWarningTime((Integer) spinnerMcBorderWarningTime.getValue());
 //            borderSettings.setWarningBlocks((Integer) spinnerMcBorderWarningDistance.getValue());
         }
-        
+
+        // caves
+        CavesSettings cavesSettings = (CavesSettings) dimension.getLayerSettings(Caves.INSTANCE);
+        if (cavesSettings == null) {
+            cavesSettings = new CavesSettings();
+        }
+        if (checkBoxCavesEverywhere.isSelected()) {
+            int cavesEverywhereLevel = sliderCavesEverywhereLevel.getValue();
+            cavesSettings.setCavesEverywhereLevel(cavesEverywhereLevel);
+        } else {
+            cavesSettings.setCavesEverywhereLevel(0);
+        }
+        cavesSettings.setSurfaceBreaking(checkBoxCavesBreakSurface.isSelected());
+        cavesSettings.setMinimumLevel((Integer) spinnerCavesMinLevel.getValue());
+        cavesSettings.setMaximumLevel((Integer) spinnerCavesMaxLevel.getValue());
+        // Other settings copied from Caverns layer
+        if (checkBoxFloodCaverns.isSelected()) {
+            cavesSettings.setWaterLevel((Integer) spinnerCavernsFloodLevel.getValue());
+        } else {
+            cavesSettings.setWaterLevel(0);
+        }
+        cavesSettings.setFloodWithLava(checkBoxCavernsFloodWithLava.isSelected());
+        cavesSettings.setLeaveWater(! checkBoxCavernsRemoveWater.isSelected());
+        dimension.setLayerSettings(Caves.INSTANCE, cavesSettings);
+
         // caverns
         CavernsSettings cavernsSettings = (CavernsSettings) dimension.getLayerSettings(Caverns.INSTANCE);
         if (cavernsSettings == null) {
@@ -304,6 +329,8 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
             chasmsSettings.setChasmsEverywhereLevel(0);
         }
         chasmsSettings.setSurfaceBreaking(checkBoxChasmsBreakSurface.isSelected());
+        chasmsSettings.setMinimumLevel((Integer) spinnerChasmsMinLevel.getValue());
+        chasmsSettings.setMaximumLevel((Integer) spinnerChasmsMaxLevel.getValue());
         // Other settings copied from Caverns layer
         if (checkBoxFloodCaverns.isSelected()) {
             chasmsSettings.setWaterLevel((Integer) spinnerCavernsFloodLevel.getValue());
@@ -312,8 +339,6 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
         }
         chasmsSettings.setFloodWithLava(checkBoxCavernsFloodWithLava.isSelected());
         chasmsSettings.setLeaveWater(! checkBoxCavernsRemoveWater.isSelected());
-        chasmsSettings.setMinimumLevel((Integer) spinnerChasmsMinLevel.getValue());
-        chasmsSettings.setMaximumLevel((Integer) spinnerChasmsMaxLevel.getValue());
         dimension.setLayerSettings(Chasms.INSTANCE, chasmsSettings);
         
         // populate
@@ -394,42 +419,42 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
         } else {
             resourcesSettings.setMinimumLevel(0);
         }
-        resourcesSettings.setChance(BLK_GOLD_ORE, (Integer) spinnerGoldChance.getValue());
-        resourcesSettings.setMinLevel(BLK_GOLD_ORE, (Integer) spinnerGoldMinLevel.getValue());
-        resourcesSettings.setMaxLevel(BLK_GOLD_ORE, (Integer) spinnerGoldMaxLevel.getValue());
-        resourcesSettings.setChance(BLK_IRON_ORE, (Integer) spinnerIronChance.getValue());
-        resourcesSettings.setMinLevel(BLK_IRON_ORE, (Integer) spinnerIronMinLevel.getValue());
-        resourcesSettings.setMaxLevel(BLK_IRON_ORE, (Integer) spinnerIronMaxLevel.getValue());
-        resourcesSettings.setChance(BLK_COAL, (Integer) spinnerCoalChance.getValue());
-        resourcesSettings.setMinLevel(BLK_COAL, (Integer) spinnerCoalMinLevel.getValue());
-        resourcesSettings.setMaxLevel(BLK_COAL, (Integer) spinnerCoalMaxLevel.getValue());
-        resourcesSettings.setChance(BLK_LAPIS_LAZULI_ORE, (Integer) spinnerLapisChance.getValue());
-        resourcesSettings.setMinLevel(BLK_LAPIS_LAZULI_ORE, (Integer) spinnerLapisMinLevel.getValue());
-        resourcesSettings.setMaxLevel(BLK_LAPIS_LAZULI_ORE, (Integer) spinnerLapisMaxLevel.getValue());
-        resourcesSettings.setChance(BLK_DIAMOND_ORE, (Integer) spinnerDiamondChance.getValue());
-        resourcesSettings.setMinLevel(BLK_DIAMOND_ORE, (Integer) spinnerDiamondMinLevel.getValue());
-        resourcesSettings.setMaxLevel(BLK_DIAMOND_ORE, (Integer) spinnerDiamondMaxLevel.getValue());
-        resourcesSettings.setChance(BLK_REDSTONE_ORE, (Integer) spinnerRedstoneChance.getValue());
-        resourcesSettings.setMinLevel(BLK_REDSTONE_ORE, (Integer) spinnerRedstoneMinLevel.getValue());
-        resourcesSettings.setMaxLevel(BLK_REDSTONE_ORE, (Integer) spinnerRedstoneMaxLevel.getValue());
-        resourcesSettings.setChance(BLK_WATER, (Integer) spinnerWaterChance.getValue());
-        resourcesSettings.setMinLevel(BLK_WATER, (Integer) spinnerWaterMinLevel.getValue());
-        resourcesSettings.setMaxLevel(BLK_WATER, (Integer) spinnerWaterMaxLevel.getValue());
-        resourcesSettings.setChance(BLK_LAVA, (Integer) spinnerLavaChance.getValue());
-        resourcesSettings.setMinLevel(BLK_LAVA, (Integer) spinnerLavaMinLevel.getValue());
-        resourcesSettings.setMaxLevel(BLK_LAVA, (Integer) spinnerLavaMaxLevel.getValue());
-        resourcesSettings.setChance(BLK_DIRT, (Integer) spinnerDirtChance.getValue());
-        resourcesSettings.setMinLevel(BLK_DIRT, (Integer) spinnerDirtMinLevel.getValue());
-        resourcesSettings.setMaxLevel(BLK_DIRT, (Integer) spinnerDirtMaxLevel.getValue());
-        resourcesSettings.setChance(BLK_GRAVEL, (Integer) spinnerGravelChance.getValue());
-        resourcesSettings.setMinLevel(BLK_GRAVEL, (Integer) spinnerGravelMinLevel.getValue());
-        resourcesSettings.setMaxLevel(BLK_GRAVEL, (Integer) spinnerGravelMaxLevel.getValue());
-        resourcesSettings.setChance(BLK_EMERALD_ORE, (Integer) spinnerEmeraldChance.getValue());
-        resourcesSettings.setMinLevel(BLK_EMERALD_ORE, (Integer) spinnerEmeraldMinLevel.getValue());
-        resourcesSettings.setMaxLevel(BLK_EMERALD_ORE, (Integer) spinnerEmeraldMaxLevel.getValue());
-        resourcesSettings.setChance(BLK_QUARTZ_ORE, (Integer) spinnerQuartzChance.getValue());
-        resourcesSettings.setMinLevel(BLK_QUARTZ_ORE, (Integer) spinnerQuartzMinLevel.getValue());
-        resourcesSettings.setMaxLevel(BLK_QUARTZ_ORE, (Integer) spinnerQuartzMaxLevel.getValue());
+        resourcesSettings.setChance(GOLD_ORE, (Integer) spinnerGoldChance.getValue());
+        resourcesSettings.setMinLevel(GOLD_ORE, (Integer) spinnerGoldMinLevel.getValue());
+        resourcesSettings.setMaxLevel(GOLD_ORE, (Integer) spinnerGoldMaxLevel.getValue());
+        resourcesSettings.setChance(IRON_ORE, (Integer) spinnerIronChance.getValue());
+        resourcesSettings.setMinLevel(IRON_ORE, (Integer) spinnerIronMinLevel.getValue());
+        resourcesSettings.setMaxLevel(IRON_ORE, (Integer) spinnerIronMaxLevel.getValue());
+        resourcesSettings.setChance(COAL, (Integer) spinnerCoalChance.getValue());
+        resourcesSettings.setMinLevel(COAL, (Integer) spinnerCoalMinLevel.getValue());
+        resourcesSettings.setMaxLevel(COAL, (Integer) spinnerCoalMaxLevel.getValue());
+        resourcesSettings.setChance(LAPIS_LAZULI_ORE, (Integer) spinnerLapisChance.getValue());
+        resourcesSettings.setMinLevel(LAPIS_LAZULI_ORE, (Integer) spinnerLapisMinLevel.getValue());
+        resourcesSettings.setMaxLevel(LAPIS_LAZULI_ORE, (Integer) spinnerLapisMaxLevel.getValue());
+        resourcesSettings.setChance(DIAMOND_ORE, (Integer) spinnerDiamondChance.getValue());
+        resourcesSettings.setMinLevel(DIAMOND_ORE, (Integer) spinnerDiamondMinLevel.getValue());
+        resourcesSettings.setMaxLevel(DIAMOND_ORE, (Integer) spinnerDiamondMaxLevel.getValue());
+        resourcesSettings.setChance(REDSTONE_ORE, (Integer) spinnerRedstoneChance.getValue());
+        resourcesSettings.setMinLevel(REDSTONE_ORE, (Integer) spinnerRedstoneMinLevel.getValue());
+        resourcesSettings.setMaxLevel(REDSTONE_ORE, (Integer) spinnerRedstoneMaxLevel.getValue());
+        resourcesSettings.setChance(WATER, (Integer) spinnerWaterChance.getValue());
+        resourcesSettings.setMinLevel(WATER, (Integer) spinnerWaterMinLevel.getValue());
+        resourcesSettings.setMaxLevel(WATER, (Integer) spinnerWaterMaxLevel.getValue());
+        resourcesSettings.setChance(LAVA, (Integer) spinnerLavaChance.getValue());
+        resourcesSettings.setMinLevel(LAVA, (Integer) spinnerLavaMinLevel.getValue());
+        resourcesSettings.setMaxLevel(LAVA, (Integer) spinnerLavaMaxLevel.getValue());
+        resourcesSettings.setChance(DIRT, (Integer) spinnerDirtChance.getValue());
+        resourcesSettings.setMinLevel(DIRT, (Integer) spinnerDirtMinLevel.getValue());
+        resourcesSettings.setMaxLevel(DIRT, (Integer) spinnerDirtMaxLevel.getValue());
+        resourcesSettings.setChance(GRAVEL, (Integer) spinnerGravelChance.getValue());
+        resourcesSettings.setMinLevel(GRAVEL, (Integer) spinnerGravelMinLevel.getValue());
+        resourcesSettings.setMaxLevel(GRAVEL, (Integer) spinnerGravelMaxLevel.getValue());
+        resourcesSettings.setChance(EMERALD_ORE, (Integer) spinnerEmeraldChance.getValue());
+        resourcesSettings.setMinLevel(EMERALD_ORE, (Integer) spinnerEmeraldMinLevel.getValue());
+        resourcesSettings.setMaxLevel(EMERALD_ORE, (Integer) spinnerEmeraldMaxLevel.getValue());
+        resourcesSettings.setChance(QUARTZ_ORE, (Integer) spinnerQuartzChance.getValue());
+        resourcesSettings.setMinLevel(QUARTZ_ORE, (Integer) spinnerQuartzMinLevel.getValue());
+        resourcesSettings.setMaxLevel(QUARTZ_ORE, (Integer) spinnerQuartzMaxLevel.getValue());
         dimension.setLayerSettings(Resources.INSTANCE, resourcesSettings);
         
         // annotations
@@ -568,6 +593,24 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
         comboBoxSubsurfaceMaterial.setModel(new DefaultComboBoxModel(materialList.toArray()));
         comboBoxSubsurfaceMaterial.setSelectedItem(dimension.getSubsurfaceMaterial());
 
+        // caves
+        CavesSettings cavesSettings = (CavesSettings) dimension.getLayerSettings(Caves.INSTANCE);
+        if (cavesSettings == null) {
+            cavesSettings = new CavesSettings();
+        }
+        if (cavesSettings.getCavesEverywhereLevel() > 0) {
+            checkBoxCavesEverywhere.setSelected(true);
+            sliderCavesEverywhereLevel.setValue(cavesSettings.getCavesEverywhereLevel());
+        } else {
+            checkBoxCavesEverywhere.setSelected(false);
+            sliderCavesEverywhereLevel.setValue(8);
+        }
+        checkBoxCavesBreakSurface.setSelected(cavesSettings.isSurfaceBreaking());
+        ((SpinnerNumberModel) spinnerCavesMinLevel.getModel()).setMaximum(maxHeight);
+        spinnerCavesMinLevel.setValue(cavesSettings.getMinimumLevel());
+        ((SpinnerNumberModel) spinnerCavesMaxLevel.getModel()).setMaximum(maxHeight);
+        spinnerCavesMaxLevel.setValue(Math.min(cavesSettings.getMaximumLevel(), maxHeight));
+
         // caverns
         CavernsSettings cavernsSettings = (CavernsSettings) dimension.getLayerSettings(Caverns.INSTANCE);
         if (cavernsSettings == null) {
@@ -690,66 +733,66 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
         } else {
             jSlider4.setValue(8);
         }
-        spinnerGoldChance.setValue(resourcesSettings.getChance(BLK_GOLD_ORE));
+        spinnerGoldChance.setValue(resourcesSettings.getChance(GOLD_ORE));
         ((SpinnerNumberModel) spinnerGoldMinLevel.getModel()).setMaximum(maxHeight);
-        spinnerGoldMinLevel.setValue(clamp(resourcesSettings.getMinLevel(BLK_GOLD_ORE), maxHeight));
+        spinnerGoldMinLevel.setValue(clamp(resourcesSettings.getMinLevel(GOLD_ORE), maxHeight));
         ((SpinnerNumberModel) spinnerGoldMaxLevel.getModel()).setMaximum(maxHeight);
-        spinnerGoldMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(BLK_GOLD_ORE), maxHeight));
-        spinnerIronChance.setValue(resourcesSettings.getChance(BLK_IRON_ORE));
+        spinnerGoldMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(GOLD_ORE), maxHeight));
+        spinnerIronChance.setValue(resourcesSettings.getChance(IRON_ORE));
         ((SpinnerNumberModel) spinnerIronMinLevel.getModel()).setMaximum(maxHeight);
-        spinnerIronMinLevel.setValue(clamp(resourcesSettings.getMinLevel(BLK_IRON_ORE), maxHeight));
+        spinnerIronMinLevel.setValue(clamp(resourcesSettings.getMinLevel(IRON_ORE), maxHeight));
         ((SpinnerNumberModel) spinnerIronMaxLevel.getModel()).setMaximum(maxHeight);
-        spinnerIronMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(BLK_IRON_ORE), maxHeight));
-        spinnerCoalChance.setValue(resourcesSettings.getChance(BLK_COAL));
+        spinnerIronMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(IRON_ORE), maxHeight));
+        spinnerCoalChance.setValue(resourcesSettings.getChance(COAL));
         ((SpinnerNumberModel) spinnerCoalMinLevel.getModel()).setMaximum(maxHeight);
-        spinnerCoalMinLevel.setValue(clamp(resourcesSettings.getMinLevel(BLK_COAL), maxHeight));
+        spinnerCoalMinLevel.setValue(clamp(resourcesSettings.getMinLevel(COAL), maxHeight));
         ((SpinnerNumberModel) spinnerCoalMaxLevel.getModel()).setMaximum(maxHeight);
-        spinnerCoalMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(BLK_COAL), maxHeight));
-        spinnerLapisChance.setValue(resourcesSettings.getChance(BLK_LAPIS_LAZULI_ORE));
+        spinnerCoalMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(COAL), maxHeight));
+        spinnerLapisChance.setValue(resourcesSettings.getChance(LAPIS_LAZULI_ORE));
         ((SpinnerNumberModel) spinnerLapisMinLevel.getModel()).setMaximum(maxHeight);
-        spinnerLapisMinLevel.setValue(clamp(resourcesSettings.getMinLevel(BLK_LAPIS_LAZULI_ORE), maxHeight));
+        spinnerLapisMinLevel.setValue(clamp(resourcesSettings.getMinLevel(LAPIS_LAZULI_ORE), maxHeight));
         ((SpinnerNumberModel) spinnerLapisMaxLevel.getModel()).setMaximum(maxHeight);
-        spinnerLapisMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(BLK_LAPIS_LAZULI_ORE), maxHeight));
-        spinnerDiamondChance.setValue(resourcesSettings.getChance(BLK_DIAMOND_ORE));
+        spinnerLapisMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(LAPIS_LAZULI_ORE), maxHeight));
+        spinnerDiamondChance.setValue(resourcesSettings.getChance(DIAMOND_ORE));
         ((SpinnerNumberModel) spinnerDiamondMinLevel.getModel()).setMaximum(maxHeight);
-        spinnerDiamondMinLevel.setValue(clamp(resourcesSettings.getMinLevel(BLK_DIAMOND_ORE), maxHeight));
+        spinnerDiamondMinLevel.setValue(clamp(resourcesSettings.getMinLevel(DIAMOND_ORE), maxHeight));
         ((SpinnerNumberModel) spinnerDiamondMaxLevel.getModel()).setMaximum(maxHeight);
-        spinnerDiamondMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(BLK_DIAMOND_ORE), maxHeight));
-        spinnerRedstoneChance.setValue(resourcesSettings.getChance(BLK_REDSTONE_ORE));
+        spinnerDiamondMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(DIAMOND_ORE), maxHeight));
+        spinnerRedstoneChance.setValue(resourcesSettings.getChance(REDSTONE_ORE));
         ((SpinnerNumberModel) spinnerRedstoneMinLevel.getModel()).setMaximum(maxHeight);
-        spinnerRedstoneMinLevel.setValue(clamp(resourcesSettings.getMinLevel(BLK_REDSTONE_ORE), maxHeight));
+        spinnerRedstoneMinLevel.setValue(clamp(resourcesSettings.getMinLevel(REDSTONE_ORE), maxHeight));
         ((SpinnerNumberModel) spinnerRedstoneMaxLevel.getModel()).setMaximum(maxHeight);
-        spinnerRedstoneMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(BLK_REDSTONE_ORE), maxHeight));
-        spinnerWaterChance.setValue(resourcesSettings.getChance(BLK_WATER));
+        spinnerRedstoneMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(REDSTONE_ORE), maxHeight));
+        spinnerWaterChance.setValue(resourcesSettings.getChance(WATER));
         ((SpinnerNumberModel) spinnerWaterMinLevel.getModel()).setMaximum(maxHeight);
-        spinnerWaterMinLevel.setValue(clamp(resourcesSettings.getMinLevel(BLK_WATER), maxHeight));
+        spinnerWaterMinLevel.setValue(clamp(resourcesSettings.getMinLevel(WATER), maxHeight));
         ((SpinnerNumberModel) spinnerWaterMaxLevel.getModel()).setMaximum(maxHeight);
-        spinnerWaterMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(BLK_WATER), maxHeight));
-        spinnerLavaChance.setValue(resourcesSettings.getChance(BLK_LAVA));
+        spinnerWaterMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(WATER), maxHeight));
+        spinnerLavaChance.setValue(resourcesSettings.getChance(LAVA));
         ((SpinnerNumberModel) spinnerLavaMinLevel.getModel()).setMaximum(maxHeight);
-        spinnerLavaMinLevel.setValue(clamp(resourcesSettings.getMinLevel(BLK_LAVA), maxHeight));
+        spinnerLavaMinLevel.setValue(clamp(resourcesSettings.getMinLevel(LAVA), maxHeight));
         ((SpinnerNumberModel) spinnerLavaMaxLevel.getModel()).setMaximum(maxHeight);
-        spinnerLavaMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(BLK_LAVA), maxHeight));
-        spinnerDirtChance.setValue(resourcesSettings.getChance(BLK_DIRT));
+        spinnerLavaMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(LAVA), maxHeight));
+        spinnerDirtChance.setValue(resourcesSettings.getChance(DIRT));
         ((SpinnerNumberModel) spinnerDirtMinLevel.getModel()).setMaximum(maxHeight);
-        spinnerDirtMinLevel.setValue(clamp(resourcesSettings.getMinLevel(BLK_DIRT), maxHeight));
+        spinnerDirtMinLevel.setValue(clamp(resourcesSettings.getMinLevel(DIRT), maxHeight));
         ((SpinnerNumberModel) spinnerDirtMaxLevel.getModel()).setMaximum(maxHeight);
-        spinnerDirtMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(BLK_DIRT), maxHeight));
-        spinnerGravelChance.setValue(resourcesSettings.getChance(BLK_GRAVEL));
+        spinnerDirtMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(DIRT), maxHeight));
+        spinnerGravelChance.setValue(resourcesSettings.getChance(GRAVEL));
         ((SpinnerNumberModel) spinnerGravelMinLevel.getModel()).setMaximum(maxHeight);
-        spinnerGravelMinLevel.setValue(clamp(resourcesSettings.getMinLevel(BLK_GRAVEL), maxHeight));
+        spinnerGravelMinLevel.setValue(clamp(resourcesSettings.getMinLevel(GRAVEL), maxHeight));
         ((SpinnerNumberModel) spinnerGravelMaxLevel.getModel()).setMaximum(maxHeight);
-        spinnerGravelMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(BLK_GRAVEL), maxHeight));
-        spinnerEmeraldChance.setValue(resourcesSettings.getChance(BLK_EMERALD_ORE));
+        spinnerGravelMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(GRAVEL), maxHeight));
+        spinnerEmeraldChance.setValue(resourcesSettings.getChance(EMERALD_ORE));
         ((SpinnerNumberModel) spinnerEmeraldMinLevel.getModel()).setMaximum(maxHeight);
-        spinnerEmeraldMinLevel.setValue(clamp(resourcesSettings.getMinLevel(BLK_EMERALD_ORE), maxHeight));
+        spinnerEmeraldMinLevel.setValue(clamp(resourcesSettings.getMinLevel(EMERALD_ORE), maxHeight));
         ((SpinnerNumberModel) spinnerEmeraldMaxLevel.getModel()).setMaximum(maxHeight);
-        spinnerEmeraldMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(BLK_EMERALD_ORE), maxHeight));
-        spinnerQuartzChance.setValue(resourcesSettings.getChance(BLK_QUARTZ_ORE));
+        spinnerEmeraldMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(EMERALD_ORE), maxHeight));
+        spinnerQuartzChance.setValue(resourcesSettings.getChance(QUARTZ_ORE));
         ((SpinnerNumberModel) spinnerQuartzMinLevel.getModel()).setMaximum(maxHeight);
-        spinnerQuartzMinLevel.setValue(clamp(resourcesSettings.getMinLevel(BLK_QUARTZ_ORE), maxHeight));
+        spinnerQuartzMinLevel.setValue(clamp(resourcesSettings.getMinLevel(QUARTZ_ORE), maxHeight));
         ((SpinnerNumberModel) spinnerQuartzMaxLevel.getModel()).setMaximum(maxHeight);
-        spinnerQuartzMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(BLK_QUARTZ_ORE), maxHeight));
+        spinnerQuartzMaxLevel.setValue(clamp(resourcesSettings.getMaxLevel(QUARTZ_ORE), maxHeight));
         
         // terrain ranges
         if (mode != Mode.EXPORT) {
@@ -806,6 +849,7 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
         radioButtonEndlessBorder.setEnabled(enabled && dim0 && (! ceiling) && (! radioButtonNoBorder.isSelected()));
         spinnerBorderSize.setEnabled(enabled && (! ceiling) && (! radioButtonNoBorder.isSelected()) && radioButtonFixedBorder.isSelected());
         checkBoxBedrockWall.setEnabled(enabled  && (! ceiling) && (radioButtonNoBorder.isSelected() || radioButtonFixedBorder.isSelected()));
+        sliderCavesEverywhereLevel.setEnabled(enabled && checkBoxCavesEverywhere.isSelected());
         sliderCavernsEverywhereLevel.setEnabled(enabled && checkBoxCavernsEverywhere.isSelected());
         sliderChasmsEverywhereLevel.setEnabled(enabled && checkBoxChasmsEverywhere.isSelected());
         spinnerCavernsFloodLevel.setEnabled(enabled && checkBoxFloodCaverns.isSelected());
@@ -817,7 +861,7 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
         jSlider4.setEnabled(enabled && jCheckBox8.isSelected());
         spinnerMinecraftSeed.setEnabled((mode != Mode.DEFAULT_SETTINGS) && enabled && dim0);
         checkBoxPopulate.setEnabled(enabled && dim0);
-        checkBoxCavernsRemoveWater.setEnabled(enabled && (checkBoxCavernsBreakSurface.isSelected() || checkBoxChasmsBreakSurface.isSelected()));
+        checkBoxCavernsRemoveWater.setEnabled(enabled && (checkBoxCavesBreakSurface.isSelected() || checkBoxCavernsBreakSurface.isSelected() || checkBoxChasmsBreakSurface.isSelected()));
         spinnerCeilingHeight.setEnabled(enabled && ceiling);
         int selectedRow = tableCustomLayers.getSelectedRow();
         buttonCustomLayerUp.setEnabled(enabled && (selectedRow != -1) && (! customLayersTableModel.isHeaderRow(selectedRow)) && (selectedRow > 0) && (! customLayersTableModel.isHeaderRow(selectedRow - 1)));
@@ -867,6 +911,7 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
 
         buttonGroup1 = new javax.swing.ButtonGroup();
         buttonGroup2 = new javax.swing.ButtonGroup();
@@ -918,27 +963,46 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
         themeEditor = new org.pepsoft.worldpainter.themes.impl.simple.SimpleThemeEditor();
         jLabel45 = new javax.swing.JLabel();
         jPanel3 = new javax.swing.JPanel();
+        jPanel9 = new javax.swing.JPanel();
+        checkBoxCavesEverywhere = new javax.swing.JCheckBox();
+        sliderCavesEverywhereLevel = new javax.swing.JSlider();
+        jPanel10 = new javax.swing.JPanel();
         checkBoxCavernsEverywhere = new javax.swing.JCheckBox();
         sliderCavernsEverywhereLevel = new javax.swing.JSlider();
-        sliderChasmsEverywhereLevel = new javax.swing.JSlider();
+        jPanel11 = new javax.swing.JPanel();
         checkBoxChasmsEverywhere = new javax.swing.JCheckBox();
-        jSeparator1 = new javax.swing.JSeparator();
-        checkBoxFloodCaverns = new javax.swing.JCheckBox();
-        jLabel1 = new javax.swing.JLabel();
-        spinnerCavernsFloodLevel = new javax.swing.JSpinner();
-        checkBoxCavernsFloodWithLava = new javax.swing.JCheckBox();
+        sliderChasmsEverywhereLevel = new javax.swing.JSlider();
+        jPanel16 = new javax.swing.JPanel();
         jLabel2 = new javax.swing.JLabel();
-        checkBoxCavernsBreakSurface = new javax.swing.JCheckBox();
-        checkBoxCavernsRemoveWater = new javax.swing.JCheckBox();
-        checkBoxChasmsBreakSurface = new javax.swing.JCheckBox();
+        jSeparator1 = new javax.swing.JSeparator();
+        jPanel13 = new javax.swing.JPanel();
+        jLabel87 = new javax.swing.JLabel();
+        spinnerCavesMinLevel = new javax.swing.JSpinner();
+        jLabel88 = new javax.swing.JLabel();
+        spinnerCavesMaxLevel = new javax.swing.JSpinner();
+        jPanel12 = new javax.swing.JPanel();
         jLabel70 = new javax.swing.JLabel();
-        jLabel71 = new javax.swing.JLabel();
         spinnerCavernsMinLevel = new javax.swing.JSpinner();
+        jLabel71 = new javax.swing.JLabel();
         spinnerCavernsMaxLevel = new javax.swing.JSpinner();
+        jPanel14 = new javax.swing.JPanel();
         jLabel73 = new javax.swing.JLabel();
         spinnerChasmsMinLevel = new javax.swing.JSpinner();
         jLabel72 = new javax.swing.JLabel();
         spinnerChasmsMaxLevel = new javax.swing.JSpinner();
+        jPanel8 = new javax.swing.JPanel();
+        checkBoxFloodCaverns = new javax.swing.JCheckBox();
+        jLabel1 = new javax.swing.JLabel();
+        spinnerCavernsFloodLevel = new javax.swing.JSpinner();
+        checkBoxCavernsFloodWithLava = new javax.swing.JCheckBox();
+        jPanel17 = new javax.swing.JPanel();
+        checkBoxCavesBreakSurface = new javax.swing.JCheckBox();
+        jPanel18 = new javax.swing.JPanel();
+        checkBoxCavernsBreakSurface = new javax.swing.JCheckBox();
+        jPanel19 = new javax.swing.JPanel();
+        checkBoxChasmsBreakSurface = new javax.swing.JCheckBox();
+        checkBoxCavernsRemoveWater = new javax.swing.JCheckBox();
+        jPanel15 = new javax.swing.JPanel();
         jPanel4 = new javax.swing.JPanel();
         jCheckBox8 = new javax.swing.JCheckBox();
         jSlider4 = new javax.swing.JSlider();
@@ -1149,7 +1213,7 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
         });
 
         checkBoxBottomless.setText("无底世界");
-        checkBoxBottomless.setToolTipText("<html>Generate a bottomless map:\n<ul><li>No bedrock at the bottom of the map\n<li>Caverns and chasms are open to the void</html>");
+        checkBoxBottomless.setToolTipText("<html>生成一个无底世界：\n<ul><li>地图底部没有基岩层\n<li>溶洞和裂缝对虚空开放</html>");
 
         jLabel67.setIcon(new javax.swing.ImageIcon(getClass().getResource("/org/pepsoft/worldpainter/icons/information.png"))); // NOI18N
         jLabel67.setText(" ");
@@ -1416,6 +1480,54 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
 
         jTabbedPane1.addTab("主题", jPanel5);
 
+        java.awt.GridBagLayout jPanel3Layout = new java.awt.GridBagLayout();
+        jPanel3Layout.columnWidths = new int[] {0, 2, 0, 2, 0};
+        jPanel3Layout.rowHeights = new int[] {0, 2, 0, 2, 0, 2, 0};
+        jPanel3.setLayout(jPanel3Layout);
+
+        checkBoxCavesEverywhere.setText("所有区域随机生成洞穴");
+        checkBoxCavesEverywhere.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                checkBoxCavesEverywhereActionPerformed(evt);
+            }
+        });
+
+        sliderCavesEverywhereLevel.setMajorTickSpacing(1);
+        sliderCavesEverywhereLevel.setMaximum(15);
+        sliderCavesEverywhereLevel.setMinimum(1);
+        sliderCavesEverywhereLevel.setPaintTicks(true);
+        sliderCavesEverywhereLevel.setSnapToTicks(true);
+        sliderCavesEverywhereLevel.setValue(8);
+
+        javax.swing.GroupLayout jPanel9Layout = new javax.swing.GroupLayout(jPanel9);
+        jPanel9.setLayout(jPanel9Layout);
+        jPanel9Layout.setHorizontalGroup(
+            jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel9Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel9Layout.createSequentialGroup()
+                        .addGap(19, 19, 19)
+                        .addComponent(sliderCavesEverywhereLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(checkBoxCavesEverywhere))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel9Layout.setVerticalGroup(
+            jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel9Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(checkBoxCavesEverywhere)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(sliderCavesEverywhereLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        jPanel3.add(jPanel9, gridBagConstraints);
+
         checkBoxCavernsEverywhere.setText("所有区域随机生成溶洞");
         checkBoxCavernsEverywhere.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1430,12 +1542,34 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
         sliderCavernsEverywhereLevel.setSnapToTicks(true);
         sliderCavernsEverywhereLevel.setValue(8);
 
-        sliderChasmsEverywhereLevel.setMajorTickSpacing(1);
-        sliderChasmsEverywhereLevel.setMaximum(15);
-        sliderChasmsEverywhereLevel.setMinimum(1);
-        sliderChasmsEverywhereLevel.setPaintTicks(true);
-        sliderChasmsEverywhereLevel.setSnapToTicks(true);
-        sliderChasmsEverywhereLevel.setValue(8);
+        javax.swing.GroupLayout jPanel10Layout = new javax.swing.GroupLayout(jPanel10);
+        jPanel10.setLayout(jPanel10Layout);
+        jPanel10Layout.setHorizontalGroup(
+            jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel10Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel10Layout.createSequentialGroup()
+                        .addGap(19, 19, 19)
+                        .addComponent(sliderCavernsEverywhereLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(checkBoxCavernsEverywhere))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel10Layout.setVerticalGroup(
+            jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel10Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(checkBoxCavernsEverywhere)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(sliderCavernsEverywhereLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        jPanel3.add(jPanel10, gridBagConstraints);
 
         checkBoxChasmsEverywhere.setText("所有区域随机生成裂缝");
         checkBoxChasmsEverywhere.addActionListener(new java.awt.event.ActionListener() {
@@ -1444,7 +1578,216 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
             }
         });
 
-        checkBoxFloodCaverns.setText("用水填充溶洞和裂缝");
+        sliderChasmsEverywhereLevel.setMajorTickSpacing(1);
+        sliderChasmsEverywhereLevel.setMaximum(15);
+        sliderChasmsEverywhereLevel.setMinimum(1);
+        sliderChasmsEverywhereLevel.setPaintTicks(true);
+        sliderChasmsEverywhereLevel.setSnapToTicks(true);
+        sliderChasmsEverywhereLevel.setValue(8);
+
+        javax.swing.GroupLayout jPanel11Layout = new javax.swing.GroupLayout(jPanel11);
+        jPanel11.setLayout(jPanel11Layout);
+        jPanel11Layout.setHorizontalGroup(
+            jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel11Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel11Layout.createSequentialGroup()
+                        .addGap(19, 19, 19)
+                        .addComponent(sliderChasmsEverywhereLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(checkBoxChasmsEverywhere))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel11Layout.setVerticalGroup(
+            jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel11Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(checkBoxChasmsEverywhere)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(sliderChasmsEverywhereLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 4;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        jPanel3.add(jPanel11, gridBagConstraints);
+
+        jLabel2.setText("设置洞穴、溶洞和裂缝层。这些设置也会应用到洞穴、溶洞和裂缝笔刷：");
+
+        javax.swing.GroupLayout jPanel16Layout = new javax.swing.GroupLayout(jPanel16);
+        jPanel16.setLayout(jPanel16Layout);
+        jPanel16Layout.setHorizontalGroup(
+            jPanel16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel16Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jSeparator1)
+                    .addGroup(jPanel16Layout.createSequentialGroup()
+                        .addComponent(jLabel2)
+                        .addGap(0, 0, Short.MAX_VALUE)))
+                .addContainerGap())
+        );
+        jPanel16Layout.setVerticalGroup(
+            jPanel16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel16Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel2)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        jPanel3.add(jPanel16, gridBagConstraints);
+
+        jLabel87.setText("洞穴最低高度：");
+
+        spinnerCavesMinLevel.setModel(new javax.swing.SpinnerNumberModel(0, 0, 255, 1));
+
+        jLabel88.setText("洞穴最高高度：");
+
+        spinnerCavesMaxLevel.setModel(new javax.swing.SpinnerNumberModel(0, 0, 255, 1));
+
+        javax.swing.GroupLayout jPanel13Layout = new javax.swing.GroupLayout(jPanel13);
+        jPanel13.setLayout(jPanel13Layout);
+        jPanel13Layout.setHorizontalGroup(
+            jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel13Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel13Layout.createSequentialGroup()
+                        .addComponent(jLabel87)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(spinnerCavesMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel13Layout.createSequentialGroup()
+                        .addComponent(jLabel88)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(spinnerCavesMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel13Layout.setVerticalGroup(
+            jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel13Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel87)
+                    .addComponent(spinnerCavesMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel88)
+                    .addComponent(spinnerCavesMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        jPanel3.add(jPanel13, gridBagConstraints);
+
+        jLabel70.setText("溶洞最低高度：");
+
+        spinnerCavernsMinLevel.setModel(new javax.swing.SpinnerNumberModel(0, 0, 255, 1));
+
+        jLabel71.setText("溶洞最高高度：");
+
+        spinnerCavernsMaxLevel.setModel(new javax.swing.SpinnerNumberModel(255, 0, 255, 1));
+
+        javax.swing.GroupLayout jPanel12Layout = new javax.swing.GroupLayout(jPanel12);
+        jPanel12.setLayout(jPanel12Layout);
+        jPanel12Layout.setHorizontalGroup(
+            jPanel12Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel12Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel12Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel12Layout.createSequentialGroup()
+                        .addComponent(jLabel70)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(spinnerCavernsMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel12Layout.createSequentialGroup()
+                        .addComponent(jLabel71)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(spinnerCavernsMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel12Layout.setVerticalGroup(
+            jPanel12Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel12Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel12Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel70)
+                    .addComponent(spinnerCavernsMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel12Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel71)
+                    .addComponent(spinnerCavernsMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        jPanel3.add(jPanel12, gridBagConstraints);
+
+        jLabel73.setText("裂缝最低高度：");
+
+        spinnerChasmsMinLevel.setModel(new javax.swing.SpinnerNumberModel(0, 0, 255, 1));
+
+        jLabel72.setText("裂缝最高高度：");
+
+        spinnerChasmsMaxLevel.setModel(new javax.swing.SpinnerNumberModel(255, 0, 255, 1));
+
+        javax.swing.GroupLayout jPanel14Layout = new javax.swing.GroupLayout(jPanel14);
+        jPanel14.setLayout(jPanel14Layout);
+        jPanel14Layout.setHorizontalGroup(
+            jPanel14Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel14Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel14Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel14Layout.createSequentialGroup()
+                        .addComponent(jLabel73)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(spinnerChasmsMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(jPanel14Layout.createSequentialGroup()
+                        .addComponent(jLabel72)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(spinnerChasmsMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
+        );
+        jPanel14Layout.setVerticalGroup(
+            jPanel14Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel14Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel14Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel73)
+                    .addComponent(spinnerChasmsMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel14Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel72)
+                    .addComponent(spinnerChasmsMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 4;
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        jPanel3.add(jPanel14, gridBagConstraints);
+
+        checkBoxFloodCaverns.setText("用水填充洞穴、溶洞和裂缝");
         checkBoxFloodCaverns.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 checkBoxFloodCavernsActionPerformed(evt);
@@ -1458,7 +1801,74 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
         checkBoxCavernsFloodWithLava.setText("用熔岩代替水：");
         checkBoxCavernsFloodWithLava.setHorizontalTextPosition(javax.swing.SwingConstants.LEADING);
 
-        jLabel2.setText("设置溶洞和裂缝层。这些设置也会应用到溶洞和裂缝笔刷：");
+        javax.swing.GroupLayout jPanel8Layout = new javax.swing.GroupLayout(jPanel8);
+        jPanel8.setLayout(jPanel8Layout);
+        jPanel8Layout.setHorizontalGroup(
+            jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel8Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(checkBoxFloodCaverns)
+                    .addGroup(jPanel8Layout.createSequentialGroup()
+                        .addGap(19, 19, 19)
+                        .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(checkBoxCavernsFloodWithLava)
+                            .addGroup(jPanel8Layout.createSequentialGroup()
+                                .addComponent(jLabel1)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(spinnerCavernsFloodLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel8Layout.setVerticalGroup(
+            jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel8Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(checkBoxFloodCaverns)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel1)
+                    .addComponent(spinnerCavernsFloodLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(checkBoxCavernsFloodWithLava)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 3;
+        gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        jPanel3.add(jPanel8, gridBagConstraints);
+
+        checkBoxCavesBreakSurface.setText("允许洞穴破坏地表");
+        checkBoxCavesBreakSurface.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                checkBoxCavesBreakSurfaceActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel17Layout = new javax.swing.GroupLayout(jPanel17);
+        jPanel17.setLayout(jPanel17Layout);
+        jPanel17Layout.setHorizontalGroup(
+            jPanel17Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel17Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(checkBoxCavesBreakSurface)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel17Layout.setVerticalGroup(
+            jPanel17Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel17Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(checkBoxCavesBreakSurface)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 4;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        jPanel3.add(jPanel17, gridBagConstraints);
 
         checkBoxCavernsBreakSurface.setText("允许溶洞破坏地表");
         checkBoxCavernsBreakSurface.addActionListener(new java.awt.event.ActionListener() {
@@ -1467,9 +1877,28 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
             }
         });
 
-        checkBoxCavernsRemoveWater.setSelected(true);
-        checkBoxCavernsRemoveWater.setText("移除洞口上方的水和熔岩");
-        checkBoxCavernsRemoveWater.setEnabled(false);
+        javax.swing.GroupLayout jPanel18Layout = new javax.swing.GroupLayout(jPanel18);
+        jPanel18.setLayout(jPanel18Layout);
+        jPanel18Layout.setHorizontalGroup(
+            jPanel18Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel18Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(checkBoxCavernsBreakSurface)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel18Layout.setVerticalGroup(
+            jPanel18Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel18Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(checkBoxCavernsBreakSurface)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 4;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        jPanel3.add(jPanel18, gridBagConstraints);
 
         checkBoxChasmsBreakSurface.setText("允许裂缝破坏地表");
         checkBoxChasmsBreakSurface.addActionListener(new java.awt.event.ActionListener() {
@@ -1478,121 +1907,60 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
             }
         });
 
-        jLabel70.setText("溶洞最低高度：");
-
-        jLabel71.setText("溶洞最高高度：");
-
-        spinnerCavernsMinLevel.setModel(new javax.swing.SpinnerNumberModel(0, 0, 255, 1));
-
-        spinnerCavernsMaxLevel.setModel(new javax.swing.SpinnerNumberModel(255, 0, 255, 1));
-
-        jLabel73.setText("裂缝最低高度：");
-
-        spinnerChasmsMinLevel.setModel(new javax.swing.SpinnerNumberModel(0, 0, 255, 1));
-
-        jLabel72.setText("裂缝最高高度：");
-
-        spinnerChasmsMaxLevel.setModel(new javax.swing.SpinnerNumberModel(255, 0, 255, 1));
-
-        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
-        jPanel3.setLayout(jPanel3Layout);
-        jPanel3Layout.setHorizontalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel3Layout.createSequentialGroup()
+        javax.swing.GroupLayout jPanel19Layout = new javax.swing.GroupLayout(jPanel19);
+        jPanel19.setLayout(jPanel19Layout);
+        jPanel19Layout.setHorizontalGroup(
+            jPanel19Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel19Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(checkBoxCavernsEverywhere)
-                    .addComponent(jLabel2)
-                    .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGap(12, 12, 12)
-                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(checkBoxCavernsRemoveWater)
-                            .addGroup(jPanel3Layout.createSequentialGroup()
-                                .addComponent(sliderCavernsEverywhereLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(18, 18, 18)
-                                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addGroup(jPanel3Layout.createSequentialGroup()
-                                        .addGap(12, 12, 12)
-                                        .addComponent(sliderChasmsEverywhereLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                    .addComponent(checkBoxChasmsEverywhere)))
-                            .addComponent(checkBoxCavernsFloodWithLava)
-                            .addGroup(jPanel3Layout.createSequentialGroup()
-                                .addComponent(jLabel1)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(spinnerCavernsFloodLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                    .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 442, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(checkBoxFloodCaverns)
-                            .addGroup(jPanel3Layout.createSequentialGroup()
-                                .addComponent(jLabel70)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(spinnerCavernsMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(checkBoxCavernsBreakSurface)
-                            .addGroup(jPanel3Layout.createSequentialGroup()
-                                .addComponent(jLabel71)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(spinnerCavernsMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(jPanel3Layout.createSequentialGroup()
-                                .addComponent(jLabel72)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(spinnerChasmsMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(checkBoxChasmsBreakSurface)
-                            .addGroup(jPanel3Layout.createSequentialGroup()
-                                .addComponent(jLabel73)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(spinnerChasmsMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                .addComponent(checkBoxChasmsBreakSurface)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
-        jPanel3Layout.setVerticalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel3Layout.createSequentialGroup()
+        jPanel19Layout.setVerticalGroup(
+            jPanel19Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel19Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addComponent(checkBoxCavernsEverywhere)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(sliderCavernsEverywhereLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addComponent(checkBoxChasmsEverywhere)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(sliderChasmsEverywhereLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(18, 18, 18)
-                .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel2)
-                .addGap(18, 18, 18)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel70)
-                    .addComponent(spinnerCavernsMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel73)
-                    .addComponent(spinnerChasmsMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel71)
-                    .addComponent(spinnerCavernsMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel72)
-                    .addComponent(spinnerChasmsMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
-                .addComponent(checkBoxFloodCaverns)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel1)
-                    .addComponent(spinnerCavernsFloodLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(checkBoxCavernsFloodWithLava)
-                .addGap(18, 18, 18)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(checkBoxCavernsBreakSurface)
-                    .addComponent(checkBoxChasmsBreakSurface))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(checkBoxCavernsRemoveWater)
+                .addComponent(checkBoxChasmsBreakSurface)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        jTabbedPane1.addTab("溶洞", new javax.swing.ImageIcon(getClass().getResource("/org/pepsoft/worldpainter/icons/caverns.png")), jPanel3); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 4;
+        gridBagConstraints.gridy = 4;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
+        jPanel3.add(jPanel19, gridBagConstraints);
+
+        checkBoxCavernsRemoveWater.setSelected(true);
+        checkBoxCavernsRemoveWater.setText("移除洞口上方的水和熔岩");
+        checkBoxCavernsRemoveWater.setEnabled(false);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 5;
+        gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        gridBagConstraints.insets = new java.awt.Insets(0, 19, 0, 0);
+        jPanel3.add(checkBoxCavernsRemoveWater, gridBagConstraints);
+
+        javax.swing.GroupLayout jPanel15Layout = new javax.swing.GroupLayout(jPanel15);
+        jPanel15.setLayout(jPanel15Layout);
+        jPanel15Layout.setHorizontalGroup(
+            jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 0, Short.MAX_VALUE)
+        );
+        jPanel15Layout.setVerticalGroup(
+            jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 0, Short.MAX_VALUE)
+        );
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 6;
+        gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        jPanel3.add(jPanel15, gridBagConstraints);
+
+        jTabbedPane1.addTab("洞穴、溶洞和裂缝", new javax.swing.ImageIcon(getClass().getResource("/org/pepsoft/worldpainter/icons/caverns.png")), jPanel3); // NOI18N
 
         jCheckBox8.setText("所有区域随机生成资源");
         jCheckBox8.addActionListener(new java.awt.event.ActionListener() {
@@ -1801,7 +2169,7 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
                             .addComponent(jSlider4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addComponent(jCheckBox8)
                         .addComponent(jLabel10)
-                        .addComponent(jSeparator2, javax.swing.GroupLayout.DEFAULT_SIZE, 552, Short.MAX_VALUE))
+                        .addComponent(jSeparator2, javax.swing.GroupLayout.DEFAULT_SIZE, 546, Short.MAX_VALUE))
                     .addGroup(jPanel4Layout.createSequentialGroup()
                         .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel4Layout.createSequentialGroup()
@@ -1929,11 +2297,10 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
                                 .addComponent(spinnerQuartzChance, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addGap(0, 0, 0)
                                 .addComponent(jLabel75)))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel11)
                             .addGroup(jPanel4Layout.createSequentialGroup()
-                                .addGap(0, 0, 0)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addGroup(jPanel4Layout.createSequentialGroup()
                                         .addComponent(spinnerGravelMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -1966,24 +2333,24 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
                                         .addGap(0, 0, 0)
                                         .addComponent(spinnerWaterMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addGap(0, 0, 0)
-                                        .addComponent(jLabel40))))
-                            .addGroup(jPanel4Layout.createSequentialGroup()
-                                .addComponent(spinnerRedstoneMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(0, 0, 0)
-                                .addComponent(jLabel64)
-                                .addGap(0, 0, 0)
-                                .addComponent(spinnerRedstoneMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(0, 0, 0)
-                                .addComponent(jLabel39))
-                            .addGroup(jPanel4Layout.createSequentialGroup()
-                                .addComponent(spinnerQuartzMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(0, 0, 0)
-                                .addComponent(jLabel77)
-                                .addGap(0, 0, 0)
-                                .addComponent(spinnerQuartzMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(0, 0, 0)
-                                .addComponent(jLabel76)))))
-                .addContainerGap(202, Short.MAX_VALUE))
+                                        .addComponent(jLabel40))
+                                    .addGroup(jPanel4Layout.createSequentialGroup()
+                                        .addComponent(spinnerRedstoneMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGap(0, 0, 0)
+                                        .addComponent(jLabel64)
+                                        .addGap(0, 0, 0)
+                                        .addComponent(spinnerRedstoneMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGap(0, 0, 0)
+                                        .addComponent(jLabel39))
+                                    .addGroup(jPanel4Layout.createSequentialGroup()
+                                        .addComponent(spinnerQuartzMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGap(0, 0, 0)
+                                        .addComponent(jLabel77)
+                                        .addGap(0, 0, 0)
+                                        .addComponent(spinnerQuartzMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGap(0, 0, 0)
+                                        .addComponent(jLabel76)))))))
+                .addContainerGap(204, Short.MAX_VALUE))
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -2068,17 +2435,17 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
                                             .addComponent(jLabel30)
                                             .addComponent(spinnerDirtChance, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                             .addComponent(jLabel31))
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addGap(6, 6, 6)
                                         .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                             .addComponent(jLabel32)
                                             .addComponent(spinnerGravelChance, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                             .addComponent(jLabel33))
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addGap(6, 6, 6)
                                         .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                             .addComponent(jLabel19)
                                             .addComponent(jLabel27)
                                             .addComponent(spinnerRedstoneChance, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGap(6, 6, 6)
                                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                         .addComponent(jLabel51)
@@ -2110,19 +2477,19 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
                                     .addComponent(jLabel42)
                                     .addComponent(spinnerDirtMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(jLabel62))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGap(6, 6, 6)
                                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                     .addComponent(spinnerGravelMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(jLabel43)
                                     .addComponent(spinnerGravelMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(jLabel63))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGap(6, 6, 6)
                                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                     .addComponent(spinnerRedstoneMaxLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(jLabel39)
                                     .addComponent(spinnerRedstoneMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(jLabel64))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGap(6, 6, 6)
                                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                     .addComponent(spinnerQuartzMinLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(jLabel77)
@@ -2285,9 +2652,9 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
                         .addGap(18, 18, 18)
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(checkBoxDeciduousEverywhere)
-                                    .addComponent(jLabel48))
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(jLabel48)
+                                    .addComponent(checkBoxDeciduousEverywhere))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(sliderDeciduousLevel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addGroup(jPanel2Layout.createSequentialGroup()
@@ -2480,26 +2847,6 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
         }
     }//GEN-LAST:event_spinnerMaxSurfaceDepthStateChanged
 
-    private void checkBoxCavernsBreakSurfaceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_checkBoxCavernsBreakSurfaceActionPerformed
-        setControlStates();
-    }//GEN-LAST:event_checkBoxCavernsBreakSurfaceActionPerformed
-
-    private void checkBoxFloodCavernsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_checkBoxFloodCavernsActionPerformed
-        setControlStates();
-    }//GEN-LAST:event_checkBoxFloodCavernsActionPerformed
-
-    private void checkBoxCavernsEverywhereActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_checkBoxCavernsEverywhereActionPerformed
-        setControlStates();
-    }//GEN-LAST:event_checkBoxCavernsEverywhereActionPerformed
-
-    private void checkBoxChasmsEverywhereActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_checkBoxChasmsEverywhereActionPerformed
-        setControlStates();
-    }//GEN-LAST:event_checkBoxChasmsEverywhereActionPerformed
-
-    private void checkBoxChasmsBreakSurfaceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_checkBoxChasmsBreakSurfaceActionPerformed
-        setControlStates();
-    }//GEN-LAST:event_checkBoxChasmsBreakSurfaceActionPerformed
-
     private void checkBoxJungleEverywhereActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_checkBoxJungleEverywhereActionPerformed
         setControlStates();
     }//GEN-LAST:event_checkBoxJungleEverywhereActionPerformed
@@ -2545,6 +2892,34 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
         }
     }//GEN-LAST:event_comboBoxUndergroundLayerAnchorActionPerformed
 
+    private void checkBoxCavernsEverywhereActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_checkBoxCavernsEverywhereActionPerformed
+        setControlStates();
+    }//GEN-LAST:event_checkBoxCavernsEverywhereActionPerformed
+
+    private void checkBoxCavernsBreakSurfaceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_checkBoxCavernsBreakSurfaceActionPerformed
+        setControlStates();
+    }//GEN-LAST:event_checkBoxCavernsBreakSurfaceActionPerformed
+
+    private void checkBoxChasmsBreakSurfaceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_checkBoxChasmsBreakSurfaceActionPerformed
+        setControlStates();
+    }//GEN-LAST:event_checkBoxChasmsBreakSurfaceActionPerformed
+
+    private void checkBoxFloodCavernsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_checkBoxFloodCavernsActionPerformed
+        setControlStates();
+    }//GEN-LAST:event_checkBoxFloodCavernsActionPerformed
+
+    private void checkBoxChasmsEverywhereActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_checkBoxChasmsEverywhereActionPerformed
+        setControlStates();
+    }//GEN-LAST:event_checkBoxChasmsEverywhereActionPerformed
+
+    private void checkBoxCavesEverywhereActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_checkBoxCavesEverywhereActionPerformed
+        setControlStates();
+    }//GEN-LAST:event_checkBoxCavesEverywhereActionPerformed
+
+    private void checkBoxCavesBreakSurfaceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_checkBoxCavesBreakSurfaceActionPerformed
+        setControlStates();
+    }//GEN-LAST:event_checkBoxCavesBreakSurfaceActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton buttonCustomLayerDown;
     private javax.swing.JButton buttonCustomLayerUp;
@@ -2557,6 +2932,8 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
     private javax.swing.JCheckBox checkBoxCavernsEverywhere;
     private javax.swing.JCheckBox checkBoxCavernsFloodWithLava;
     private javax.swing.JCheckBox checkBoxCavernsRemoveWater;
+    private javax.swing.JCheckBox checkBoxCavesBreakSurface;
+    private javax.swing.JCheckBox checkBoxCavesEverywhere;
     private javax.swing.JCheckBox checkBoxChasmsBreakSurface;
     private javax.swing.JCheckBox checkBoxChasmsEverywhere;
     private javax.swing.JCheckBox checkBoxCoverSteepTerrain;
@@ -2658,15 +3035,29 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
     private javax.swing.JLabel jLabel84;
     private javax.swing.JLabel jLabel85;
     private javax.swing.JLabel jLabel86;
+    private javax.swing.JLabel jLabel87;
+    private javax.swing.JLabel jLabel88;
     private javax.swing.JLabel jLabel9;
     private javax.swing.JLabel jLabel90;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel10;
+    private javax.swing.JPanel jPanel11;
+    private javax.swing.JPanel jPanel12;
+    private javax.swing.JPanel jPanel13;
+    private javax.swing.JPanel jPanel14;
+    private javax.swing.JPanel jPanel15;
+    private javax.swing.JPanel jPanel16;
+    private javax.swing.JPanel jPanel17;
+    private javax.swing.JPanel jPanel18;
+    private javax.swing.JPanel jPanel19;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel5;
     private javax.swing.JPanel jPanel6;
     private javax.swing.JPanel jPanel7;
+    private javax.swing.JPanel jPanel8;
+    private javax.swing.JPanel jPanel9;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator2;
@@ -2681,6 +3072,7 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
     private javax.swing.JRadioButton radioButtonVoidBorder;
     private javax.swing.JRadioButton radioButtonWaterBorder;
     private javax.swing.JSlider sliderCavernsEverywhereLevel;
+    private javax.swing.JSlider sliderCavesEverywhereLevel;
     private javax.swing.JSlider sliderChasmsEverywhereLevel;
     private javax.swing.JSlider sliderDeciduousLevel;
     private javax.swing.JSlider sliderJungleLevel;
@@ -2690,6 +3082,8 @@ public class DimensionPropertiesEditor extends javax.swing.JPanel {
     private javax.swing.JSpinner spinnerCavernsFloodLevel;
     private javax.swing.JSpinner spinnerCavernsMaxLevel;
     private javax.swing.JSpinner spinnerCavernsMinLevel;
+    private javax.swing.JSpinner spinnerCavesMaxLevel;
+    private javax.swing.JSpinner spinnerCavesMinLevel;
     private javax.swing.JSpinner spinnerCeilingHeight;
     private javax.swing.JSpinner spinnerChasmsMaxLevel;
     private javax.swing.JSpinner spinnerChasmsMinLevel;

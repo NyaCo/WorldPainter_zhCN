@@ -185,12 +185,12 @@ public class ShiftWorldDialog extends WorldPainterDialog implements ProgressRece
         jSpinner2.setModel(new javax.swing.SpinnerNumberModel(0, -2147483648, 2147483647, 128));
         jSpinner2.addChangeListener(this::jSpinner2StateChanged);
 
-
         jLabel4.setText("（负值表示向西移动；正值表示向东移动）");
 
         jLabel5.setText("（负值表示向北移动；正值表示向南移动）");
 
         jLabel6.setText("<html><em>这个操作无法撤销！</em></html>");
+
 
         jCheckBox1.setSelected(true);
         jCheckBox1.setText("同时移动对应的天花板或地面");

@@ -79,7 +79,7 @@ public class RespawnPlayerDialog extends javax.swing.JDialog {
 
             @Override
             public String getDescription() {
-                return "Minecraft level.dat文件";
+                return "Minecraft level.dat 文件";
             }
         });
         if (levelDatFile != null) {

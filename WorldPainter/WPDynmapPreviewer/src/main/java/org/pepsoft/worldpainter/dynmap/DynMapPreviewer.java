@@ -5,8 +5,8 @@ import org.pepsoft.util.IconUtils;
 import org.pepsoft.util.MathUtils;
 import org.pepsoft.util.PluginManager;
 import org.pepsoft.util.swing.TiledImageViewer;
-import org.pepsoft.worldpainter.*;
 import org.pepsoft.worldpainter.Dimension;
+import org.pepsoft.worldpainter.*;
 import org.pepsoft.worldpainter.objects.WPObject;
 import org.pepsoft.worldpainter.plugins.CustomObjectManager;
 import org.pepsoft.worldpainter.plugins.WPPluginManager;
@@ -27,7 +27,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
-import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_2;
+import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_ANVIL;
 import static org.pepsoft.worldpainter.Constants.DIM_NORMAL;
 import static org.pepsoft.worldpainter.plugins.WPPluginManager.FILENAME;
 
@@ -44,7 +44,7 @@ public class DynMapPreviewer extends TiledImageViewer {
     }
 
     public DynMapPreviewer(double myAzimuth, double myInclination, int myZoom) {
-        super(true, Math.max(Runtime.getRuntime().availableProcessors() - 1, 1), false);
+        super(true, false);
         initialAzimuth = myAzimuth;
         initialInclination = myInclination;
         initialZoom = myZoom;
@@ -233,8 +233,8 @@ public class DynMapPreviewer extends TiledImageViewer {
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         DynMapPreviewer viewer = new DynMapPreviewer();
         WPObject object = CustomObjectManager.getInstance().loadObject(new File(args[0]));
-        TileFactory tileFactory = TileFactoryFactory.createNoiseTileFactory(0L, Terrain.GRASS, DEFAULT_MAX_HEIGHT_2, 58, 62, false, true, 20.0f, 1.0);
-        Dimension dimension = new World2(DefaultPlugin.JAVA_ANVIL, 0L, tileFactory, DEFAULT_MAX_HEIGHT_2).getDimension(DIM_NORMAL);
+        TileFactory tileFactory = TileFactoryFactory.createNoiseTileFactory(0L, Terrain.GRASS, DEFAULT_MAX_HEIGHT_ANVIL, 58, 62, false, true, 20.0f, 1.0);
+        Dimension dimension = new World2(DefaultPlugin.JAVA_ANVIL, 0L, tileFactory, DEFAULT_MAX_HEIGHT_ANVIL).getDimension(DIM_NORMAL);
         viewer.setObject(object, dimension);
         frame.getContentPane().add(viewer, BorderLayout.CENTER);
         frame.setSize(800, 600);

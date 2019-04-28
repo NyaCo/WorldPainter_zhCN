@@ -5,12 +5,12 @@
 
 package org.pepsoft.minecraft;
 
+import org.jnbt.*;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import org.jnbt.*;
 
 /**
  * A data structure based on an NBT tag or hierarchy of tags.
@@ -32,6 +32,14 @@ public abstract class AbstractNBTItem implements NBTItem, Serializable, Cloneabl
     
     protected final boolean containsTag(String name) {
         return tag.containsTag(name);
+    }
+
+    protected final Tag getTag(String name) {
+        return tag.getTag(name);
+    }
+
+    protected final void setTag(String name, Tag tag) {
+        this.tag.setTag(name, tag);
     }
 
     protected final Map<String, Tag> getMap(String name) {
@@ -227,6 +235,10 @@ public abstract class AbstractNBTItem implements NBTItem, Serializable, Cloneabl
 
     protected final void setLongArray(String name, long[] values) {
         tag.setTag(name, new LongArrayTag(name, values));
+    }
+
+    protected final void removeTag(String name) {
+        tag.setTag(name, null);
     }
 
     @Override

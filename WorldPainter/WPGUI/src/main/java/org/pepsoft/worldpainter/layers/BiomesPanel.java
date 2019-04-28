@@ -7,13 +7,13 @@ import org.pepsoft.worldpainter.biomeschemes.*;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.*;
 import java.util.List;
 
-import static org.pepsoft.worldpainter.biomeschemes.Minecraft1_7Biomes.*;
+import static javax.swing.BoxLayout.PAGE_AXIS;
+import static org.pepsoft.worldpainter.biomeschemes.Minecraft1_13Biomes.*;
 import static org.pepsoft.worldpainter.layers.BiomesPanel.BiomeOption.*;
 
 /**
@@ -68,7 +68,7 @@ public class BiomesPanel extends JPanel implements CustomBiomeManager.CustomBiom
     }
 
     private void initComponents(ColourScheme colourScheme) {
-        setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
+        setLayout(new BoxLayout(this, PAGE_AXIS));
 
         label1.setHorizontalTextPosition(JLabel.LEADING);
         label1.setAlignmentX(0.0f);
@@ -76,36 +76,32 @@ public class BiomesPanel extends JPanel implements CustomBiomeManager.CustomBiom
         label2.setAlignmentX(0.0f);
         add(label2);
 
-        for (final int biome : BIOME_ORDER) {
-            if (biome != -1) {
-                final JToggleButton button = new JToggleButton(new ImageIcon(BiomeSchemeManager.createImage(BIOME_SCHEME, biome, colourScheme)));
-                button.putClientProperty(KEY_BIOME, biome);
-                button.setMargin(App.BUTTON_INSETS);
-                StringBuilder tooltip = new StringBuilder();
-                tooltip.append(AutoBiomeScheme.BIOME_NAMES[biome]);
-                tooltip.append(" (");
-                List<Integer> variantIds = findVariants(biome);
-                boolean first = true;
-                for (Integer variantId : variantIds) {
-                    if (first) {
-                        first = false;
-                    } else {
-                        tooltip.append(", ");
-                    }
-                    tooltip.append(variantId);
+        for (final int biome: BIOME_ORDER) {
+            final JToggleButton button = new JToggleButton(new ImageIcon(BiomeSchemeManager.createImage(BIOME_SCHEME, biome, colourScheme)));
+            button.putClientProperty(KEY_BIOME, biome);
+            button.setMargin(App.BUTTON_INSETS);
+            StringBuilder tooltip = new StringBuilder();
+            tooltip.append(AutoBiomeScheme.BIOME_NAMES[biome]);
+            tooltip.append(" (");
+            List<Integer> variantIds = findVariants(biome);
+            boolean first = true;
+            for (Integer variantId : variantIds) {
+                if (first) {
+                    first = false;
+                } else {
+                    tooltip.append(", ");
                 }
-                tooltip.append(')');
-                button.setToolTipText(tooltip.toString());
-                buttonGroup.add(button);
-                button.addActionListener(e -> {
-                    if (button.isSelected()) {
-                        selectBaseBiome(biome);
-                    }
-                });
-                grid.add(button);
-            } else {
-                grid.add(new JLabel());
+                tooltip.append(variantId);
             }
+            tooltip.append(')');
+            button.setToolTipText(tooltip.toString());
+            buttonGroup.add(button);
+            button.addActionListener(e -> {
+                if (button.isSelected()) {
+                    selectBaseBiome(biome);
+                }
+            });
+            grid.add(button);
         }
 
         JButton addCustomBiomeButton = new JButton(IconUtils.loadScaledIcon("org/pepsoft/worldpainter/icons/plus.png"));
@@ -115,7 +111,7 @@ public class BiomesPanel extends JPanel implements CustomBiomeManager.CustomBiom
             final Window parent = SwingUtilities.getWindowAncestor(BiomesPanel.this);
             final int id = customBiomeManager.getNextId();
             if (id == -1) {
-                JOptionPane.showMessageDialog(parent, "Maximum number of custom biomes reached", "Maximum Reached", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(parent, "已经到达自定义生物群系的最大数量", "到达上限", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             CustomBiome customBiome = new CustomBiome("Custom", id, Color.ORANGE.getRGB());
@@ -129,29 +125,8 @@ public class BiomesPanel extends JPanel implements CustomBiomeManager.CustomBiom
         grid.setAlignmentX(0.0f);
         add(grid);
 
-        checkBoxHillsShore.setEnabled(false);
-        checkBoxEdgePlateau.setEnabled(false);
-        checkBoxM.setEnabled(false);
-        checkBoxF.setEnabled(false);
-        checkBoxVariant.setEnabled(false);
-
-        ActionListener optionActionListener = e -> updateOptions();
-        checkBoxHillsShore.addActionListener(optionActionListener);
-        checkBoxEdgePlateau.addActionListener(optionActionListener);
-        checkBoxM.addActionListener(optionActionListener);
-        checkBoxF.addActionListener(optionActionListener);
-        checkBoxVariant.addActionListener(optionActionListener);
-
-        add(checkBoxHillsShore);
-        checkBoxEdgePlateau.setAlignmentX(0.0f);
-        add(checkBoxEdgePlateau);
-        JPanel lowerRowPanel = new JPanel();
-        lowerRowPanel.setLayout(new BoxLayout(lowerRowPanel, BoxLayout.LINE_AXIS));
-        lowerRowPanel.add(checkBoxM);
-        lowerRowPanel.add(checkBoxF);
-        lowerRowPanel.add(checkBoxVariant);
-        lowerRowPanel.setAlignmentX(0.0f);
-        add(lowerRowPanel);
+        optionsPanel.setLayout(new BoxLayout(optionsPanel, PAGE_AXIS));
+        add(optionsPanel);
     }
 
     private void selectBaseBiome(int biome) {
@@ -163,48 +138,42 @@ public class BiomesPanel extends JPanel implements CustomBiomeManager.CustomBiom
     }
 
     private void resetOptions() {
-        checkBoxHillsShore.setSelected(false);
-        checkBoxEdgePlateau.setSelected(false);
-        checkBoxM.setSelected(false);
-        checkBoxF.setSelected(false);
-        checkBoxVariant.setSelected(false);
-        Set<BiomeOption> availableOptions = findAvailableOptions(selectedBaseBiome, null);
-        checkBoxHillsShore.setEnabled(availableOptions.contains(HILLS_SHORE));
-        checkBoxEdgePlateau.setEnabled(availableOptions.contains(EDGE_PLATEAU));
-        checkBoxM.setEnabled(availableOptions.contains(M));
-        checkBoxF.setEnabled(availableOptions.contains(F));
-        checkBoxVariant.setEnabled(availableOptions.contains(VARIANT));
+        Set<BiomeOption> availableOptions = findAvailableOptions(selectedBaseBiome);
+        optionsPanel.removeAll();
+        for (BiomeOption option: availableOptions) {
+            JCheckBox checkBox = new JCheckBox(option.cnname);
+            checkBox.addActionListener(event -> updateOptions());
+            checkBox.putClientProperty(PROPERTY_BIOME_OPTION, option);
+            checkBox.setEnabled(findBiome(selectedBaseBiome, EnumSet.of(option)) != -1);
+            optionsPanel.add(checkBox);
+        }
     }
 
     private void updateOptions() {
         Set<BiomeOption> selectedOptions = getSelectedOptions();
         selectedBiome = findBiome(selectedBaseBiome, selectedOptions);
         notifyListener();
-        Set<BiomeOption> availableOptions = findAvailableOptions(selectedBaseBiome, selectedOptions);
-        checkBoxHillsShore.setEnabled(availableOptions.contains(HILLS_SHORE));
-        checkBoxEdgePlateau.setEnabled(availableOptions.contains(EDGE_PLATEAU));
-        checkBoxM.setEnabled(availableOptions.contains(M));
-        checkBoxF.setEnabled(availableOptions.contains(F));
-        checkBoxVariant.setEnabled(availableOptions.contains(VARIANT));
+        for (Component component: optionsPanel.getComponents()) {
+            JCheckBox checkBox = (JCheckBox) component;
+            BiomeOption biomeOption = (BiomeOption) checkBox.getClientProperty(PROPERTY_BIOME_OPTION);
+            if (selectedOptions.contains(biomeOption)) {
+                checkBox.setEnabled(true);
+            } else {
+                EnumSet<BiomeOption> optionsCopy = EnumSet.copyOf(selectedOptions);
+                optionsCopy.add(biomeOption);
+                checkBox.setEnabled(findBiome(selectedBaseBiome, optionsCopy) != -1);
+            }
+        }
         updateLabels();
     }
 
     private Set<BiomeOption> getSelectedOptions() {
         Set<BiomeOption> selectedOptions = EnumSet.noneOf(BiomeOption.class);
-        if (checkBoxHillsShore.isSelected()) {
-            selectedOptions.add(HILLS_SHORE);
-        }
-        if (checkBoxEdgePlateau.isSelected()) {
-            selectedOptions.add(EDGE_PLATEAU);
-        }
-        if (checkBoxM.isSelected()) {
-            selectedOptions.add(M);
-        }
-        if (checkBoxF.isSelected()) {
-            selectedOptions.add(F);
-        }
-        if (checkBoxVariant.isSelected()) {
-            selectedOptions.add(VARIANT);
+        for (Component component: optionsPanel.getComponents()) {
+            JCheckBox checkBox = (JCheckBox) component;
+            if (checkBox.isSelected()) {
+                selectedOptions.add((BiomeOption) checkBox.getClientProperty(PROPERTY_BIOME_OPTION));
+            }
         }
         return selectedOptions;
     }
@@ -215,9 +184,9 @@ public class BiomesPanel extends JPanel implements CustomBiomeManager.CustomBiom
      *
      * @param baseId The base ID of the biome.
      * @param options The selected options.
-     * @return The actual biome ID for the specified base biome and options.
-     * @throws IllegalArgumentException If the specified base ID or options are
-     *     invalid or don't specify an existing actual biome.
+     * @return The actual biome ID for the specified base biome and options, or
+     * -1 if the specified base ID or options are invalid or don't specify an
+     * existing actual biome.
      */
     private int findBiome(int baseId, Set<BiomeOption> options) {
         for (BiomeDescriptor descriptor: DESCRIPTORS) {
@@ -225,7 +194,7 @@ public class BiomesPanel extends JPanel implements CustomBiomeManager.CustomBiom
                 return descriptor.getId();
             }
         }
-        throw new IllegalArgumentException("There is no biome with base ID " + baseId + " and options " + options);
+        return -1;
     }
 
     private void updateLabels() {
@@ -239,7 +208,7 @@ public class BiomesPanel extends JPanel implements CustomBiomeManager.CustomBiom
         final JToggleButton button = new JToggleButton(IconUtils.createScaledColourIcon(customBiome.getColour()));
         button.putClientProperty(KEY_BIOME, biome);
         button.setMargin(App.BUTTON_INSETS);
-        button.setToolTipText(customBiome.getName() + " (" + biome + "); right-click for options");
+        button.setToolTipText(customBiome.getName() + "（" + biome + "）；右键展开选项");
         button.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mousePressed(MouseEvent e) {
@@ -265,7 +234,7 @@ public class BiomesPanel extends JPanel implements CustomBiomeManager.CustomBiom
                 private void showPopupMenu(MouseEvent e) {
                     JPopupMenu popup = new JPopupMenu();
                     
-                    JMenuItem item = new JMenuItem("Edit...");
+                    JMenuItem item = new JMenuItem("编辑...");
                     item.addActionListener(actionEvent -> {
                         CustomBiomeDialog dialog = new CustomBiomeDialog(SwingUtilities.getWindowAncestor(button), customBiome, false);
                         dialog.setVisible(true);
@@ -275,9 +244,9 @@ public class BiomesPanel extends JPanel implements CustomBiomeManager.CustomBiom
                     });
                     popup.add(item);
                     
-                    item = new JMenuItem("Remove...");
+                    item = new JMenuItem("移除...");
                     item.addActionListener(actionEvent -> {
-                        if (JOptionPane.showConfirmDialog(button, "Are you sure you want to remove custom biome \"" + customBiome.getName() + "\" (ID: " + customBiome.getId() + ")?\nAny occurrences will be replaced with Automatic Biomes", "Confirm Removal", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                        if (JOptionPane.showConfirmDialog(button, "你确定要移除自定义生物群系“" + customBiome.getName() + "”（ID：" + customBiome.getId() + "）吗？\n这个生物群系覆盖的范围会被填充自动生物群系取代", "确认移除", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
                             customBiomeManager.removeCustomBiome(customBiome);
                         }
                     });
@@ -305,41 +274,24 @@ public class BiomesPanel extends JPanel implements CustomBiomeManager.CustomBiom
     }
 
     /**
-     * Find the available biome options given a particular base biome and a set
-     * of already selected options.
+     * Find the available biome options given a particular base biome.
      *
      * @param baseId The ID of the base biome.
-     * @param options The already selected options. May be <code>null</code> or
-     *     empty.
-     * @return The total available options for the specified base biome and
-     *     selected options. May be empty, but not <code>null</code>.
+     * @return The total available options for the specified base biome. May be
+     * empty, but not <code>null</code>.
      */
-    private static Set<BiomeOption> findAvailableOptions(int baseId, Set<BiomeOption> options) {
+    private static Set<BiomeOption> findAvailableOptions(int baseId) {
         if (BIOME_SCHEME.isBiomePresent(baseId)) {
-            Set<BiomeOption> availableOptions = (options != null) ? EnumSet.copyOf(options) : EnumSet.noneOf(BiomeOption.class);
+            Set<BiomeOption> availableOptions = EnumSet.noneOf(BiomeOption.class);
             for (BiomeDescriptor descriptor: DESCRIPTORS) {
-                if ((descriptor.getBaseId() == baseId) && ((options == null) || descriptor.getOptions().containsAll(options))) {
+                if (descriptor.getBaseId() == baseId) {
                     availableOptions.addAll(descriptor.getOptions());
-                }
-            }
-
-            // Special cases
-            if (baseId == BIOME_MESA) {
-                if ((options == null) || options.isEmpty()) {
-                    // There is no Mesa M, Mesa F or Mesa M F, so if only Mesa is
-                    // selected, M and F should not yet be available
-                    availableOptions.remove(M);
-                    availableOptions.remove(F);
-                } else if (options.contains(M) || options.contains(F)) {
-                    // On the other hand, once M or F are selected, it should
-                    // no longer be possible to deselect "edge/plateau"
-                    availableOptions.remove(EDGE_PLATEAU);
                 }
             }
 
             return availableOptions;
         } else {
-            return Collections.EMPTY_SET;
+            return Collections.emptySet();
         }
     }
 
@@ -364,14 +316,9 @@ public class BiomesPanel extends JPanel implements CustomBiomeManager.CustomBiom
         listener.biomeSelected(selectedBiome);
     }
 
-    private final JPanel grid = new JPanel(new GridLayout(0, 4));
+    private final JPanel grid = new JPanel(new GridLayout(0, 4)), optionsPanel = new JPanel();
     private final ButtonGroup buttonGroup;
-    private final JCheckBox checkBoxHillsShore = new JCheckBox("山丘/岩石");
-    private final JCheckBox checkBoxEdgePlateau = new JCheckBox("边缘/高原");
-    private final JCheckBox checkBoxM = new JCheckBox("M");
-    private final JCheckBox checkBoxF = new JCheckBox("F");
-    private final JCheckBox checkBoxVariant = new JCheckBox("特殊");
-    private final JLabel label1 = new JLabel("选中的群系：1"), label2 = new JLabel("草原");
+    private final JLabel label1 = new JLabel("选中的群系：1"), label2 = new JLabel("平原");
 
     private final CustomBiomeManager customBiomeManager;
     private final BiomeHelper biomeHelper;
@@ -382,17 +329,17 @@ public class BiomesPanel extends JPanel implements CustomBiomeManager.CustomBiom
     private static final int[] BIOME_ORDER = {
         BIOME_PLAINS, BIOME_FOREST, BIOME_SWAMPLAND, BIOME_JUNGLE,
         BIOME_BIRCH_FOREST, BIOME_ROOFED_FOREST, BIOME_EXTREME_HILLS, BIOME_MUSHROOM_ISLAND,
-        BIOME_TAIGA, BIOME_MEGA_TAIGA, BIOME_MEGA_SPRUCE_TAIGA, -1,
-        BIOME_DESERT, BIOME_SAVANNA, BIOME_MESA, -1,
+        BIOME_TAIGA, BIOME_MEGA_TAIGA, BIOME_MEGA_SPRUCE_TAIGA, BIOME_ICE_PLAINS,
+        BIOME_DESERT, BIOME_SAVANNA, BIOME_MESA, BIOME_ICE_PLAINS_SPIKES,
         BIOME_OCEAN, BIOME_RIVER, BIOME_BEACH, BIOME_STONE_BEACH,
-        BIOME_FROZEN_OCEAN, BIOME_FROZEN_RIVER, BIOME_COLD_BEACH, BIOME_ICE_PLAINS,
-        BIOME_ICE_MOUNTAINS, BIOME_COLD_TAIGA, BIOME_HELL, BIOME_SKY
+        BIOME_HELL, BIOME_SKY, BIOME_VOID
     };
     private static final String KEY_BIOME = BiomesPanel.class.getName() + ".biome";
+    private static final String PROPERTY_BIOME_OPTION = "org.pepsoft.worldpainter.layers.BiomesPanel.biomeOption";
 
     private static final BiomeDescriptor[] DESCRIPTORS = {
         new BiomeDescriptor("海洋", 0, 0),
-        new BiomeDescriptor("草原", 1, 1),
+        new BiomeDescriptor("平原", 1, 1),
         new BiomeDescriptor("沙漠", 2, 2),
         new BiomeDescriptor("山地", 3, 3),
         new BiomeDescriptor("森林", 4, 4),
@@ -401,60 +348,89 @@ public class BiomesPanel extends JPanel implements CustomBiomeManager.CustomBiom
         new BiomeDescriptor("河流", 7, 7),
         new BiomeDescriptor("下界", 8, 8),
         new BiomeDescriptor("末地", 9, 9),
-        new BiomeDescriptor("冻洋", 10, 10),
-        new BiomeDescriptor("冻河", 11, 11),
+
+        new BiomeDescriptor("冻洋", 10, 0, FROZEN),
+        new BiomeDescriptor("冻河", 11, 7, FROZEN),
         new BiomeDescriptor("积雪的冻原", 12, 12),
-        new BiomeDescriptor("雪山", 13, 13),
+        new BiomeDescriptor("雪山", 13, 3, SNOWY),
         new BiomeDescriptor("蘑菇岛", 14, 14),
-        new BiomeDescriptor("蘑菇岛岸", 15, 14, HILLS_SHORE),
+        new BiomeDescriptor("蘑菇岛岸", 15, 14, SHORE),
         new BiomeDescriptor("沙滩", 16, 16),
-        new BiomeDescriptor("沙漠丘陵", 17, 2, HILLS_SHORE),
-        new BiomeDescriptor("繁茂的丘陵", 18, 4, HILLS_SHORE),
-        new BiomeDescriptor("针叶林丘陵", 19, 5, HILLS_SHORE),
-        new BiomeDescriptor("山地边缘", 20, 3, EDGE_PLATEAU),
+        new BiomeDescriptor("沙漠丘陵", 17, 2, HILLS),
+        new BiomeDescriptor("繁茂的丘陵", 18, 4, HILLS),
+        new BiomeDescriptor("针叶林丘陵", 19, 5, HILLS),
+
+        new BiomeDescriptor("山地边缘", 20, 3, EDGE),
         new BiomeDescriptor("丛林", 21, 21),
-        new BiomeDescriptor("丛林丘陵", 22, 21, HILLS_SHORE),
-        new BiomeDescriptor("丛林边缘", 23, 21, EDGE_PLATEAU),
-        new BiomeDescriptor("深海", 24, 0, VARIANT),
+        new BiomeDescriptor("丛林丘陵", 22, 21, HILLS),
+        new BiomeDescriptor("丛林边缘", 23, 21, EDGE),
+        new BiomeDescriptor("深海", 24, 0, DEEP),
         new BiomeDescriptor("石岸", 25, 25),
-        new BiomeDescriptor("积雪的沙滩", 26, 26),
+        new BiomeDescriptor("积雪的沙滩", 26, 16, SNOWY),
         new BiomeDescriptor("桦木森林", 27, 27),
-        new BiomeDescriptor("桦木森林丘陵", 28, 27, HILLS_SHORE),
+        new BiomeDescriptor("桦木森林丘陵", 28, 27, HILLS),
         new BiomeDescriptor("黑森林", 29, 29),
-        new BiomeDescriptor("积雪的针叶林", 30, 30),
-        new BiomeDescriptor("积雪的针叶林丘陵", 31, 30, HILLS_SHORE),
+
+        new BiomeDescriptor("积雪的针叶林", 30, 5, SNOWY),
+        new BiomeDescriptor("积雪的针叶林丘陵", 31, 5, SNOWY, HILLS),
         new BiomeDescriptor("巨型针叶林", 32, 32),
-        new BiomeDescriptor("巨型针叶林丘陵", 33, 32, HILLS_SHORE),
-        new BiomeDescriptor("繁茂的山地", 34, 3, VARIANT),
+        new BiomeDescriptor("巨型针叶林丘陵", 33, 32, HILLS),
+        new BiomeDescriptor("繁茂的山地", 34, 3, WOODED),
         new BiomeDescriptor("热带草原", 35, 35),
-        new BiomeDescriptor("热带高原", 36, 35, EDGE_PLATEAU),
+        new BiomeDescriptor("热带高原", 36, 35, PLATEAU),
         new BiomeDescriptor("恶地", 37, 37),
-        new BiomeDescriptor("繁茂的恶地高原", 38, 37, EDGE_PLATEAU, F),
-        new BiomeDescriptor("恶地高原", 39, 37, EDGE_PLATEAU),
-        new BiomeDescriptor("向日葵平原", 129, 1, VARIANT),
-        new BiomeDescriptor("沙漠湖泊", 130, 2, M),
-        new BiomeDescriptor("沙砾山地", 131, 3, M),
-        new BiomeDescriptor("繁花森林", 132, 4, VARIANT),
-        new BiomeDescriptor("针叶林山地", 133, 5, M),
-        new BiomeDescriptor("沼泽山丘", 134, 6, M),
-        new BiomeDescriptor("冰刺平原", 140, 12, VARIANT),
-        new BiomeDescriptor("丛林变种", 149, 21, M),
-        new BiomeDescriptor("丛林边缘变种", 151, 21, EDGE_PLATEAU, M),
-        new BiomeDescriptor("高大桦木森林", 155, 27, M),
-        new BiomeDescriptor("高大桦木丘陵", 156, 27, HILLS_SHORE, M),
-        new BiomeDescriptor("黑森林丘陵", 157, 29, M),
-        new BiomeDescriptor("积雪的针叶林山地", 158, 30, M),
+        new BiomeDescriptor("繁茂的恶地高原", 38, 37, WOODED, PLATEAU),
+        new BiomeDescriptor("恶地高原", 39, 37, PLATEAU),
+
+        new BiomeDescriptor("末地小型岛屿", 40, 9, SMALL_ISLANDS),
+        new BiomeDescriptor("末地中型岛屿", 41, 9, MIDLANDS),
+        new BiomeDescriptor("末地高岛", 42, 9, HIGHLANDS),
+        new BiomeDescriptor("末地荒岛", 43, 9, BARRENS),
+        new BiomeDescriptor("暖水海洋", 44, 0, WARM),
+        new BiomeDescriptor("温水海洋", 45, 0, LUKEWARM),
+        new BiomeDescriptor("冷水海洋", 46, 0, COLD),
+        new BiomeDescriptor("暖水深海", 47, 0, DEEP, WARM),
+        new BiomeDescriptor("温水深海", 48, 0, DEEP, LUKEWARM),
+        new BiomeDescriptor("冷水深海", 49, 0, DEEP, COLD),
+
+        new BiomeDescriptor("封冻深海", 50, 0, DEEP, FROZEN),
+
+        new BiomeDescriptor("虚空", 127, 127),
+        new BiomeDescriptor("向日葵平原", 129, 1, FLOWERS),
+
+        new BiomeDescriptor("沙漠湖泊", 130, 2, LAKES),
+        new BiomeDescriptor("沙砾山地", 131, 3, GRAVELLY),
+        new BiomeDescriptor("繁花森林", 132, 4, FLOWERS),
+        new BiomeDescriptor("针叶林山地", 133, 5, MOUNTAINOUS),
+        new BiomeDescriptor("沼泽山丘", 134, 6, HILLS),
+
+        new BiomeDescriptor("冰刺平原", 140, 140),
+        new BiomeDescriptor("丛林变种", 149, 21, MODIFIED),
+
+        new BiomeDescriptor("丛林边缘变种", 151, 21, MODIFIED, EDGE),
+        new BiomeDescriptor("高大桦木森林", 155, 27, TALL),
+        new BiomeDescriptor("高大桦木丘陵", 156, 27, HILLS, TALL),
+        new BiomeDescriptor("黑森林丘陵", 157, 29, HILLS),
+        new BiomeDescriptor("积雪的针叶林山地", 158, 5, SNOWY, MOUNTAINOUS),
+
         new BiomeDescriptor("巨型云杉针叶林", 160, 160),
-        new BiomeDescriptor("巨型云杉针叶林丘陵", 161, 160, HILLS_SHORE),
-        new BiomeDescriptor("沙砾山地+", 162, 3, VARIANT, M),
-        new BiomeDescriptor("破碎的热带草原", 163, 35, M),
-        new BiomeDescriptor("破碎的热带高原", 164, 35, EDGE_PLATEAU, M),
-        new BiomeDescriptor("被风蚀的恶地", 165, 37, VARIANT),
-        new BiomeDescriptor("繁茂的恶地高原变种", 166, 37, EDGE_PLATEAU, F, M),
-        new BiomeDescriptor("恶地高原变种", 167, 37, EDGE_PLATEAU, M),
+        new BiomeDescriptor("巨型云杉针叶林丘陵", 161, 160, HILLS),
+        new BiomeDescriptor("沙砾山地+", 162, 3, GRAVELLY, VARIANT),
+        new BiomeDescriptor("破碎的热带草原", 163, 35, SHATTERED),
+        new BiomeDescriptor("破碎的热带高原", 164, 35, SHATTERED, PLATEAU),
+        new BiomeDescriptor("被风蚀的恶地", 165, 37, ERODED),
+        new BiomeDescriptor("繁茂的恶地高原变种", 166, 37, MODIFIED, WOODED, PLATEAU),
+        new BiomeDescriptor("恶地高原变种", 167, 37, MODIFIED, PLATEAU),
     };
 
-    public enum BiomeOption {HILLS_SHORE, EDGE_PLATEAU, M, F, VARIANT}
+    public enum BiomeOption {HILLS("丘陵"), SHORE("岛岸"), EDGE("边缘"), PLATEAU("高原"), MOUNTAINOUS("山地"), VARIANT("变体"), FROZEN("冻河"), SNOWY("积雪"), DEEP("深海"), WOODED("繁茂"), WARM("温暖"),
+        LUKEWARM("温水"), COLD("寒冷"), TALL("高大"), FLOWERS("花"), LAKES("湖泊"), GRAVELLY("沙砾"), SHATTERED("破碎"), SMALL_ISLANDS("小型岛屿"), MIDLANDS("中型岛屿"), HIGHLANDS("高岛"), BARRENS("荒岛"),
+        MODIFIED("变种"), ERODED("风蚀");
+        final String cnname;
+        private BiomeOption(String cnname) {
+            this.cnname = cnname;
+        }
+    }
 
     public static class BiomeDescriptor {
         public BiomeDescriptor(String name, int id, int baseId, BiomeOption... options) {

@@ -87,10 +87,11 @@ public final class Bo3Object extends AbstractObject implements Bo2ObjectProvider
             tileEntities = blocks.values().stream()
                 .flatMap(block -> block.getTileEntities().stream())
                 .map(tileEntity -> {
-                    tileEntity.setX(tileEntity.getX() + origin.x);
-                    tileEntity.setY(tileEntity.getY() + origin.z);
-                    tileEntity.setZ(tileEntity.getZ() + origin.y);
-                    return tileEntity;
+                    TileEntity clone = (TileEntity) tileEntity.clone();
+                    clone.setX(clone.getX() + origin.x);
+                    clone.setY(clone.getY() + origin.z);
+                    clone.setZ(clone.getZ() + origin.y);
+                    return clone;
                 })
                 .collect(Collectors.toList());
         }
@@ -134,6 +135,17 @@ public final class Bo3Object extends AbstractObject implements Bo2ObjectProvider
     @Override
     public void setSeed(long seed) {
         // Do nothing
+    }
+
+    @Override
+    public boolean visitBlocks(BlockVisitor visitor) {
+        for (Map.Entry<Point3i, Bo3BlockSpec> entry: blocks.entrySet()) {
+            Point3i coords = entry.getKey();
+            if (! visitor.visitBlock(this, coords.x + origin.x, coords.y + origin.y, coords.z + origin.z, entry.getValue().getMaterial())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

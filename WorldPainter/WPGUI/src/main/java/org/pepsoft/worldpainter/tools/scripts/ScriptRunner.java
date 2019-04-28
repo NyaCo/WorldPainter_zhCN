@@ -426,7 +426,7 @@ public class ScriptRunner extends WorldPainterDialog {
                         jButton1.setEnabled(true);
                         jTextArea1.setEnabled(true);
                         jButton2.setEnabled(true);
-                        jButton3.setText("Close");
+                        jButton3.setText("关闭");
                         jButton3.setEnabled(true);
                     });
                 }

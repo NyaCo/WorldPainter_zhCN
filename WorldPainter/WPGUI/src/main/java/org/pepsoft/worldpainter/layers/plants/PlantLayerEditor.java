@@ -24,7 +24,8 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import static org.pepsoft.worldpainter.Constants.V_1_12_2;
-import static org.pepsoft.worldpainter.layers.plants.Plant.Category.*;
+import static org.pepsoft.worldpainter.layers.plants.Category.*;
+import static org.pepsoft.worldpainter.layers.plants.Plants.ALL_PLANTS;
 import static org.pepsoft.worldpainter.util.I18nHelper.m;
 
 /**
@@ -85,20 +86,20 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
     public void reset() {
         fieldName.setText(layer.getName());
         selectedColour = layer.getColour();
-        checkBoxGenerateTilledDirt.setSelected(layer.isGenerateTilledDirt());
-        for (int i = 0; i < Plant.ALL_PLANTS.length; i++) {
+        checkBoxGenerateTilledDirt.setSelected(layer.isGenerateFarmland());
+        for (int i = 0; i < ALL_PLANTS.length; i++) {
             PlantLayer.PlantSettings settings = layer.getSettings(i);
             if (settings != null) {
                 spinners[i].setValue((int) settings.occurrence);
                 if (growthFromSpinners[i] != null) {
-                    growthFromSpinners[i].setValue(settings.dataValueFrom + 1);
-                    growthToSpinners[i].setValue(settings.dataValueTo + 1);
+                    growthFromSpinners[i].setValue(settings.growthFrom);
+                    growthToSpinners[i].setValue(settings.growthTo);
                 }
             } else {
                 spinners[i].setValue(0);
                 if (growthFromSpinners[i] != null) {
-                    growthFromSpinners[i].setValue(Plant.ALL_PLANTS[i].getMaxData() + 1);
-                    growthToSpinners[i].setValue(Plant.ALL_PLANTS[i].getMaxData() + 1);
+                    growthFromSpinners[i].setValue(ALL_PLANTS[i].getMaxGrowth());
+                    growthToSpinners[i].setValue(ALL_PLANTS[i].getMaxGrowth());
                 }
             }
         }
@@ -135,22 +136,30 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
     }
     
     private void initPlantControls() {
-        panelPlantControls.setLayout(new GridBagLayout());
-        panelPlantControls2.setLayout(new GridBagLayout());
-        addCategory(panelPlantControls, PLANTS_AND_FLOWERS);
-        addCategory(panelPlantControls2, SAPLINGS);
-        addCategory(panelPlantControls2, CROPS);
-        addCategory(panelPlantControls2, "其他", MUSHROOMS, CACTUS, SUGAR_CANE, WATER_PLANTS, NETHER, END);
+        JPanel panel = new JPanel(new GridBagLayout());
+        panelPlantControls.add(panel);
+        addCategory(panel, PLANTS_AND_FLOWERS);
+        addFiller(panel);
+        panel = new JPanel(new GridBagLayout());
+        panelPlantControls.add(panel);
+        addCategory(panel, SAPLINGS);
+        addCategory(panel, CROPS);
+        addCategory(panel, "其他", MUSHROOMS, CACTUS, SUGAR_CANE, FLOATING_PLANTS, NETHER, END);
+        addFiller(panel);
+        panel = new JPanel(new GridBagLayout());
+        panelPlantControls.add(panel);
+        addCategory(panel, WATER_PLANTS);
+        addFiller(panel);
     }
 
-    private void addCategory(JPanel panel, Plant.Category category) {
+    private void addCategory(JPanel panel, Category category) {
         GridBagConstraints constraints = new GridBagConstraints();
         constraints.gridwidth = GridBagConstraints.REMAINDER;
         constraints.anchor = GridBagConstraints.BASELINE_LEADING;
         constraints.insets = new Insets(4, 0, 4, 0);
         panel.add(new JLabel("<html><b>" + m(category) + "</b></html>"), constraints);
-        for (int i = 0; i < Plant.ALL_PLANTS.length; i++) {
-            Plant plant = Plant.ALL_PLANTS[i];
+        for (int i = 0; i < ALL_PLANTS.length; i++) {
+            Plant plant = ALL_PLANTS[i];
             if (plant.getCategory() == category) {
                 addPlantRow(panel, plant, i);
             }
@@ -158,15 +167,15 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
     }
 
 
-    private void addCategory(JPanel panel, String title, Plant.Category... categories) {
+    private void addCategory(JPanel panel, String title, Category... categories) {
         GridBagConstraints constraints = new GridBagConstraints();
         constraints.gridwidth = GridBagConstraints.REMAINDER;
         constraints.anchor = GridBagConstraints.BASELINE_LEADING;
         constraints.insets = new Insets(4, 0, 4, 0);
         panel.add(new JLabel("<html><b>" + title + "</b></html>"), constraints);
-        for (Plant.Category category: categories) {
-            for (int i = 0; i < Plant.ALL_PLANTS.length; i++) {
-                Plant plant = Plant.ALL_PLANTS[i];
+        for (Category category: categories) {
+            for (int i = 0; i < ALL_PLANTS.length; i++) {
+                Plant plant = ALL_PLANTS[i];
                 if (plant.getCategory() == category) {
                     addPlantRow(panel, plant, i);
                 }
@@ -195,10 +204,10 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
         percentageLabels[index] = new JLabel("100%");
         panel.add(percentageLabels[index], constraints);
 
-        if (plant.getMaxData() > 0) {
+        if (plant.getMaxGrowth() > 1) {
             panel.add(new JLabel("生长阶段："), constraints);
             
-            spinnerModel = new SpinnerNumberModel(plant.getMaxData() + 1, 1, plant.getMaxData() + 1, 1);
+            spinnerModel = new SpinnerNumberModel(plant.getMaxGrowth(), 1, plant.getMaxGrowth(), 1);
             growthFromSpinners[index] = new JSpinner(spinnerModel);
             growthFromSpinners[index].addChangeListener(e -> {
                 int newValue = (Integer) growthFromSpinners[index].getValue();
@@ -211,7 +220,7 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
             panel.add(new JLabel("-"));
 
             constraints.gridwidth = GridBagConstraints.REMAINDER;
-            spinnerModel = new SpinnerNumberModel(plant.getMaxData() + 1, 1, plant.getMaxData() + 1, 1);
+            spinnerModel = new SpinnerNumberModel(plant.getMaxGrowth(), 1, plant.getMaxGrowth(), 1);
             growthToSpinners[index] = new JSpinner(spinnerModel);
             growthToSpinners[index].addChangeListener(e -> {
                 int newValue = (Integer) growthToSpinners[index].getValue();
@@ -226,13 +235,19 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
         }
     }
 
+    private void addFiller(final JPanel panel) {
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.weighty = 1.0;
+        panel.add(new JPanel(), constraints);
+    }
+
     private static BufferedImage findIcon(String name) {
         if (resourcesJar == RESOURCES_NOT_AVAILABLE) {
             return null;
         }
         try {
             if (resourcesJar == null) {
-                resourcesJar = BiomeSchemeManager.getMinecraftJar(V_1_12_2);
+                resourcesJar = BiomeSchemeManager.getMinecraftJarNoNewerThan(V_1_12_2);
                 if (resourcesJar == null) {
                     logger.warn("Could not find Minecraft jar for loading plant icons");
                     resourcesJar = RESOURCES_NOT_AVAILABLE;
@@ -287,7 +302,7 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
                     percentageLabels[i].setEnabled(true);
                     plantLabels[i].setFont(boldFont);
                 }
-                if (Plant.ALL_PLANTS[i].getCategory() == CROPS) {
+                if (ALL_PLANTS[i].getCategory() == CROPS) {
                     cropsSelected = true;
                 }
                 int percentage = value * 100 / totalOccurrence;
@@ -334,16 +349,16 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
         }
         layer.setName(fieldName.getText().trim());
         layer.setColour(selectedColour);
-        layer.setGenerateTilledDirt(checkBoxGenerateTilledDirt.isSelected());
-        for (int i = 0; i < Plant.ALL_PLANTS.length; i++) {
+        layer.setGenerateFarmland(checkBoxGenerateTilledDirt.isSelected());
+        for (int i = 0; i < ALL_PLANTS.length; i++) {
             PlantLayer.PlantSettings settings = new PlantLayer.PlantSettings();
             settings.occurrence = (short) ((int) ((Integer) spinners[i].getValue()));
             if (growthFromSpinners[i] != null) {
-                settings.dataValueFrom = (byte) ((Integer) growthFromSpinners[i].getValue() - 1);
-                settings.dataValueTo = (byte) ((Integer) growthToSpinners[i].getValue() - 1);
+                settings.growthFrom = (Integer) growthFromSpinners[i].getValue();
+                settings.growthTo = (Integer) growthToSpinners[i].getValue();
             } else {
-                settings.dataValueFrom = 0;
-                settings.dataValueTo = 0;
+                settings.growthFrom = 1;
+                settings.growthTo = 1;
             }
             layer.setSettings(i, settings);
         }
@@ -351,11 +366,11 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
     }
     
     private void clear() {
-        for (int i = 0; i < Plant.ALL_PLANTS.length; i++) {
+        for (int i = 0; i < ALL_PLANTS.length; i++) {
             spinners[i].setValue(0);
             if (growthFromSpinners[i] != null) {
-                growthFromSpinners[i].setValue(Plant.ALL_PLANTS[i].getMaxData() + 1);
-                growthToSpinners[i].setValue(Plant.ALL_PLANTS[i].getMaxData() + 1);
+                growthFromSpinners[i].setValue(ALL_PLANTS[i].getMaxGrowth());
+                growthToSpinners[i].setValue(ALL_PLANTS[i].getMaxGrowth());
             }
         }
         updatePercentages();
@@ -373,7 +388,6 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
         buttonColour = new javax.swing.JButton();
         jLabel3 = new javax.swing.JLabel();
         labelColour = new javax.swing.JLabel();
-        panelPlantControls2 = new javax.swing.JPanel();
         buttonClear = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
         panelPlantControls = new javax.swing.JPanel();
@@ -382,8 +396,11 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
         jLabel2 = new javax.swing.JLabel();
 
         buttonColour.setText("...");
-        buttonColour.addActionListener(this::buttonColourActionPerformed);
-
+        buttonColour.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                buttonColourActionPerformed(evt);
+            }
+        });
 
         jLabel3.setText("<html>注意：植被只能生长在Minecraft允许的地方！</html>");
 
@@ -391,32 +408,16 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
         labelColour.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
         labelColour.setOpaque(true);
 
-        javax.swing.GroupLayout panelPlantControls2Layout = new javax.swing.GroupLayout(panelPlantControls2);
-        panelPlantControls2.setLayout(panelPlantControls2Layout);
-        panelPlantControls2Layout.setHorizontalGroup(
-            panelPlantControls2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        panelPlantControls2Layout.setVerticalGroup(
-            panelPlantControls2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-
         buttonClear.setText("清空");
-        buttonClear.addActionListener(this::buttonClearActionPerformed);
+        buttonClear.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                buttonClearActionPerformed(evt);
+            }
+        });
 
         jLabel1.setText("名称：");
 
-        javax.swing.GroupLayout panelPlantControlsLayout = new javax.swing.GroupLayout(panelPlantControls);
-        panelPlantControls.setLayout(panelPlantControlsLayout);
-        panelPlantControlsLayout.setHorizontalGroup(
-            panelPlantControlsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 225, Short.MAX_VALUE)
-        );
-        panelPlantControlsLayout.setVerticalGroup(
-            panelPlantControlsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
+        panelPlantControls.setLayout(new javax.swing.BoxLayout(panelPlantControls, javax.swing.BoxLayout.LINE_AXIS));
 
         checkBoxGenerateTilledDirt.setSelected(true);
         checkBoxGenerateTilledDirt.setText("将农作物下方的草方块或泥土转换为耕地");
@@ -433,9 +434,8 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(checkBoxGenerateTilledDirt)
             .addGroup(layout.createSequentialGroup()
-                .addComponent(panelPlantControls, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(panelPlantControls2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addComponent(panelPlantControls, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGap(0, 0, 0))
             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                 .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
                     .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -466,13 +466,11 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(checkBoxGenerateTilledDirt)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(panelPlantControls2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(panelPlantControls, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(panelPlantControls, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addGap(18, 18, 18)
                         .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(buttonClear))
-                .addGap(0, 0, Short.MAX_VALUE))
+                .addGap(0, 0, 0))
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -495,12 +493,11 @@ public class PlantLayerEditor extends AbstractLayerEditor<PlantLayer> {
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel labelColour;
     private javax.swing.JPanel panelPlantControls;
-    private javax.swing.JPanel panelPlantControls2;
     // End of variables declaration//GEN-END:variables
 
-    private final JSpinner[] spinners = new JSpinner[Plant.ALL_PLANTS.length];
-    private final JLabel[] plantLabels = new JLabel[Plant.ALL_PLANTS.length], percentageLabels = new JLabel[Plant.ALL_PLANTS.length];
-    private final JSpinner[] growthFromSpinners = new JSpinner[Plant.ALL_PLANTS.length], growthToSpinners = new JSpinner[Plant.ALL_PLANTS.length];
+    private final JSpinner[] spinners = new JSpinner[ALL_PLANTS.length];
+    private final JLabel[] plantLabels = new JLabel[ALL_PLANTS.length], percentageLabels = new JLabel[ALL_PLANTS.length];
+    private final JSpinner[] growthFromSpinners = new JSpinner[ALL_PLANTS.length], growthToSpinners = new JSpinner[ALL_PLANTS.length];
     private int selectedColour = Color.ORANGE.getRGB(), totalOccurrence;
     private boolean cropsSelected;
     private Font normalFont, boldFont;

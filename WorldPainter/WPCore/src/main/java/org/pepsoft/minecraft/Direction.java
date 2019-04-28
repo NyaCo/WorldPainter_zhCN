@@ -5,12 +5,18 @@
 package org.pepsoft.minecraft;
 
 /**
+ * The cardinal directions, with methods for manipulating them.
  *
  * @author pepijn
  */
 public enum Direction {
     NORTH, EAST, SOUTH, WEST;
-    
+
+    @Override
+    public String toString() {
+        return name().toLowerCase();
+    }
+
     public Direction rotate(int steps) {
         int direction = ordinal();
         direction = (direction + steps) & 0x03;
@@ -25,6 +31,23 @@ public enum Direction {
                 return WEST;
             default:
                 throw new InternalError();
+        }
+    }
+
+    // TODO move implementations into individual enum constants:
+
+    /**
+     * Mirror this direction in an axis indicated by a separated direction.
+     *
+     * @param axis The direction of the axis in which to mirror this direction.
+     * @return This direction mirrored in the specified axis.
+     */
+    public Direction mirror(Direction axis) {
+        if ((((axis == WEST) || (axis == EAST)) && ((this == NORTH) || (this == SOUTH)))
+                || (((axis == NORTH) || (axis == SOUTH)) && ((this == WEST) || (this == EAST)))) {
+            return opposite();
+        } else {
+            return this;
         }
     }
     
@@ -101,5 +124,9 @@ public enum Direction {
             default:
                 throw new InternalError();
         }
+    }
+
+    public static Direction parse(String str) {
+        return valueOf(str.toUpperCase());
     }
 }

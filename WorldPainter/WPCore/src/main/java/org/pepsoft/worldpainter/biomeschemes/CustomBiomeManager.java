@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import static org.pepsoft.worldpainter.biomeschemes.Minecraft1_13Biomes.FIRST_UNALLOCATED_ID;
+
 /**
  * Coordinates loading, saving and editing of custom biomes.
  * 
@@ -42,7 +44,7 @@ public class CustomBiomeManager {
     public int getNextId() {
         if (customBiomes != null) {
             outer:
-            for (int i = 40; i < 256; i++) {
+            for (int i = FIRST_UNALLOCATED_ID; i < 256; i++) {
                 for (CustomBiome customBiome : customBiomes) {
                     if (customBiome.getId() == i) {
                         continue outer;
@@ -55,14 +57,14 @@ public class CustomBiomeManager {
             }
             return - 1;
         } else {
-            return 40;
+            return FIRST_UNALLOCATED_ID;
         }
     }
 
     public boolean addCustomBiome(Window parent, CustomBiome customBiome) {
         if (isBiomePresent(customBiome.getId())) {
             if (parent != null) {
-                JOptionPane.showMessageDialog(parent, "指定的ID（" + customBiome.getId() + "）已经是一个常规生物群系了（名为" + Minecraft1_7Biomes.BIOME_NAMES[customBiome.getId()] + "）", "ID已被占用", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(parent, "指定的ID（" + customBiome.getId() + "）已经是一个常规生物群系了（名为" + Minecraft1_13Biomes.BIOME_NAMES[customBiome.getId()] + "）", "ID已被占用", JOptionPane.ERROR_MESSAGE);
             }
             return false;
         }
@@ -130,7 +132,7 @@ public class CustomBiomeManager {
     }
 
     private static boolean isBiomePresent(int biome) {
-        return (biome <= Minecraft1_7Biomes.HIGHEST_BIOME_ID) && (Minecraft1_7Biomes.BIOME_NAMES[biome] != null);
+        return (biome <= Minecraft1_13Biomes.HIGHEST_BIOME_ID) && (Minecraft1_13Biomes.BIOME_NAMES[biome] != null);
     }
 
     private final List<CustomBiomeListener> listeners = new ArrayList<>();

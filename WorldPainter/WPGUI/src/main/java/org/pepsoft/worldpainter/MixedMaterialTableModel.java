@@ -97,17 +97,15 @@ public final class MixedMaterialTableModel implements TableModel, Cloneable {
 
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
-        return (rows.length > 1) || (columnIndex != COLUMN_COUNT) || (mode == Mode.LAYERED);
+        return (columnIndex != COLUMN_MATERIAL) && ((rows.length > 1) || (columnIndex != COLUMN_COUNT) || (mode == Mode.LAYERED));
     }
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         Row row = rows[rowIndex];
         switch (columnIndex) {
-            case COLUMN_BLOCK_ID:
-                return row.material.blockType;
-            case COLUMN_DATA_VALUE:
-                return row.material.data;
+            case COLUMN_MATERIAL:
+                return row.material;
             case COLUMN_COUNT:
                 return row.occurrence;
             case COLUMN_SCALE:
@@ -124,11 +122,8 @@ public final class MixedMaterialTableModel implements TableModel, Cloneable {
         }
         Row row = rows[rowIndex];
         switch (columnIndex) {
-            case COLUMN_BLOCK_ID:
-                row = new Row(Material.get((Integer) aValue, row.material.data), row.occurrence, row.scale);
-                break;
-            case COLUMN_DATA_VALUE:
-                row = new Row(Material.get(row.material.blockType, (Integer) aValue), row.occurrence, row.scale);
+            case COLUMN_MATERIAL:
+                row = new Row((Material) aValue, row.occurrence, row.scale);
                 break;
             case COLUMN_COUNT:
                 row = new Row(row.material, (Integer) aValue, row.scale);
@@ -174,12 +169,11 @@ public final class MixedMaterialTableModel implements TableModel, Cloneable {
     private final List<TableModelListener> listeners = new ArrayList<>();
     private Row[] rows;
     private Mode mode;
+    
+    public static final int COLUMN_MATERIAL = 0;
+    public static final int COLUMN_COUNT    = 1;
+    public static final int COLUMN_SCALE    = 2;
 
-    public static final int COLUMN_BLOCK_ID   = 0;
-    public static final int COLUMN_DATA_VALUE = 1;
-    public static final int COLUMN_COUNT      = 2;
-    public static final int COLUMN_SCALE      = 3;
-
-    private static final String[] COLUMN_NAMES =   {"方块ID",    "数据值",  "Count",       "斑点大小（百分比）"};
-    private static final Class<?>[] COLUMN_TYPES = {Integer.class, Integer.class, Integer.class, Integer.class};
+    private static final String[] COLUMN_NAMES =   {"材质",     "Count",       "斑点大小（百分比）"};
+    private static final Class<?>[] COLUMN_TYPES = {Material.class, Integer.class, Integer.class};
 }

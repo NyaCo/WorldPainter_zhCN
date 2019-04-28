@@ -4,20 +4,19 @@
  */
 package org.pepsoft.util;
 
-import java.awt.*;
-import java.io.*;
-import java.nio.charset.Charset;
-import java.nio.file.*;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.text.MessageFormat;
-import java.util.*;
-import java.util.List;
-
 import org.jetbrains.annotations.NonNls;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
+import java.awt.*;
+import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.MessageFormat;
+import java.util.List;
+import java.util.*;
 
 /**
  *
@@ -128,13 +127,7 @@ public class FileUtils {
         if (destFile.isDirectory()) {
             throw new IllegalStateException("Destination file is an existing directory");
         }
-        try (FileInputStream in = new FileInputStream(file); FileOutputStream out = new FileOutputStream(destFile)) {
-            int bytesRead;
-            byte[] buffer = new byte[BUFFER_SIZE];
-            while ((bytesRead = in.read(buffer)) != -1) {
-                out.write(buffer, 0, bytesRead);
-            }
-        }
+        StreamUtils.copy(new FileInputStream(file), new FileOutputStream(destFile));
         destFile.setLastModified(file.lastModified());
     }
 
@@ -169,19 +162,7 @@ public class FileUtils {
         if (destFile.isFile()) {
             throw new IllegalStateException("Destination file " + destFile + " already exists");
         }
-        long fileSize = file.length();
-        long bytesCopied = 0;
-        try (FileInputStream in = new FileInputStream(file); FileOutputStream out = new FileOutputStream(destFile)) {
-            int bytesRead;
-            byte[] buffer = new byte[BUFFER_SIZE];
-            while ((bytesRead = in.read(buffer)) != -1) {
-                out.write(buffer, 0, bytesRead);
-                bytesCopied += bytesRead;
-                if ((progressReceiver != null) && (fileSize > 0)) {
-                    progressReceiver.setProgress((float) ((double) bytesCopied / fileSize));
-                }
-            }
-        }
+        StreamUtils.copy(new FileInputStream(file), new FileOutputStream(destFile), progressReceiver, file.length());
         destFile.setLastModified(file.lastModified());
     }
 

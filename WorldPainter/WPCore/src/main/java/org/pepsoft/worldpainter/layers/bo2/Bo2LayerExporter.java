@@ -5,7 +5,9 @@
 package org.pepsoft.worldpainter.layers.bo2;
 
 import com.google.common.collect.Sets;
+import org.pepsoft.minecraft.Material;
 import org.pepsoft.worldpainter.Dimension;
+import org.pepsoft.worldpainter.Platform;
 import org.pepsoft.worldpainter.exporting.Fixup;
 import org.pepsoft.worldpainter.exporting.IncidentalLayerExporter;
 import org.pepsoft.worldpainter.exporting.MinecraftWorld;
@@ -24,8 +26,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import static org.pepsoft.minecraft.Block.BLOCKS;
-import static org.pepsoft.minecraft.Constants.*;
+import static org.pepsoft.minecraft.Constants.MC_LAVA;
+import static org.pepsoft.minecraft.Constants.MC_WATER;
+import static org.pepsoft.minecraft.Material.AIR;
 import static org.pepsoft.worldpainter.objects.WPObject.*;
 
 /**
@@ -41,7 +44,7 @@ public class Bo2LayerExporter extends WPObjectExporter<Bo2Layer> implements Seco
     }
     
     @Override
-    public List<Fixup> render(final Dimension dimension, Rectangle area, Rectangle exportedArea, MinecraftWorld minecraftWorld) {
+    public List<Fixup> render(final Dimension dimension, Rectangle area, Rectangle exportedArea, MinecraftWorld minecraftWorld, Platform platform) {
         final Bo2ObjectProvider objectProvider = layer.getObjectProvider();
         final int maxHeight = dimension.getMaxHeight();
         final int maxZ = maxHeight - 1;
@@ -106,19 +109,19 @@ public class Bo2LayerExporter extends WPObjectExporter<Bo2Layer> implements Seco
     }
 
     @Override
-    public Fixup apply(Dimension dimension, Point3i location, int intensity, Rectangle exportedArea, MinecraftWorld minecraftWorld) {
+    public Fixup apply(Dimension dimension, Point3i location, int intensity, Rectangle exportedArea, MinecraftWorld minecraftWorld, Platform platform) {
         final long seed = dimension.getSeed() ^ ((long) location.x << 40) ^ ((long) location.y << 20) ^ (location.z);
         applyRandom.setSeed(seed);
         if ((intensity > 0) && (applyRandom.nextInt(layer.getDensity() * 20) <= intensity * intensity / 225)) {
             final Bo2ObjectProvider objectProvider = layer.getObjectProvider();
             objectProvider.setSeed(seed);
             WPObject object = objectProvider.getObject();
-            int existingBlockType = minecraftWorld.getBlockTypeAt(location.x, location.y, location.z);
-            int blockBelow = minecraftWorld.getBlockTypeAt(location.x, location.y, location.z - 1);
-            if ((object.getAttribute(ATTRIBUTE_SPAWN_IN_LAVA) && ((existingBlockType == BLK_LAVA) || (existingBlockType == BLK_STATIONARY_LAVA)))
-                    || (object.getAttribute(ATTRIBUTE_SPAWN_IN_WATER) && ((existingBlockType == BLK_WATER) || (existingBlockType == BLK_STATIONARY_WATER)))
-                    || (object.getAttribute(ATTRIBUTE_SPAWN_ON_LAND) && (! BLOCKS[blockBelow].veryInsubstantial))
-                    || (! object.getAttribute(ATTRIBUTE_NEEDS_FOUNDATION) && BLOCKS[blockBelow].veryInsubstantial)) {
+            Material existingMaterial = minecraftWorld.getMaterialAt(location.x, location.y, location.z);
+            Material materialBelow = minecraftWorld.getMaterialAt(location.x, location.y, location.z - 1);
+            if ((object.getAttribute(ATTRIBUTE_SPAWN_IN_LAVA) && existingMaterial.isNamed(MC_LAVA))
+                    || (object.getAttribute(ATTRIBUTE_SPAWN_IN_WATER) && existingMaterial.isNamed(MC_WATER))
+                    || (object.getAttribute(ATTRIBUTE_SPAWN_ON_LAND) && (! materialBelow.veryInsubstantial))
+                    || (! object.getAttribute(ATTRIBUTE_NEEDS_FOUNDATION) && materialBelow.veryInsubstantial)) {
                 if (object.getAttribute(ATTRIBUTE_RANDOM_ROTATION)) {
                     if (applyRandom.nextBoolean()) {
                         object = new MirroredObject(object, false);
@@ -160,8 +163,10 @@ public class Bo2LayerExporter extends WPObjectExporter<Bo2Layer> implements Seco
         final Point3i offset = object.getOffset();
         // Check whether the objects fits completely inside the exported area.
         // This is to avoid objects getting cut off at area boundaries
-        return ! ((x + offset.x < exportedArea.x) || (x + offset.x + dimensions.x > exportedArea.x + exportedArea.width)
-            || (y + offset.y < exportedArea.y) || (y + offset.y + dimensions.y > exportedArea.y + exportedArea.height));
+        return ! ((x + offset.x < exportedArea.x)
+            || (x + offset.x + dimensions.x - 1 > exportedArea.x + exportedArea.width - 1)
+            || (y + offset.y < exportedArea.y)
+            || (y + offset.y + dimensions.y - 1 > exportedArea.y + exportedArea.height - 1));
     }
 
     /**
@@ -196,13 +201,13 @@ public class Bo2LayerExporter extends WPObjectExporter<Bo2Layer> implements Seco
                 return Placement.FLOATING;
             }
         } else if (! flooded) {
-            int blockTypeUnderCoords = (z > 0) ? minecraftWorld.getBlockTypeAt(x, y, z - 1) : BLK_AIR;
-            if (object.getAttribute(ATTRIBUTE_SPAWN_ON_LAND) && (! BLOCKS[blockTypeUnderCoords].veryInsubstantial)) {
+            Material materialUnderCoords = (z > 0) ? minecraftWorld.getMaterialAt(x, y, z - 1) : AIR;
+            if (object.getAttribute(ATTRIBUTE_SPAWN_ON_LAND) && (! materialUnderCoords.veryInsubstantial)) {
                 if (logger.isTraceEnabled()) {
                     logger.trace("Object " + object.getName() + " @ " + x + "," + y + "," + z + " potentially placeable on land");
                 }
                 return Placement.ON_LAND;
-            } else if ((! object.getAttribute(ATTRIBUTE_NEEDS_FOUNDATION)) && BLOCKS[blockTypeUnderCoords].veryInsubstantial) {
+            } else if ((! object.getAttribute(ATTRIBUTE_NEEDS_FOUNDATION)) && materialUnderCoords.veryInsubstantial) {
                 if (logger.isTraceEnabled()) {
                     logger.trace("Object " + object.getName() + " @ " + x + "," + y + "," + z + " potentially placeable in the air");
                 }

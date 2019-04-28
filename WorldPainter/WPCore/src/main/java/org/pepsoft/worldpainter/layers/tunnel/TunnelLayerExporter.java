@@ -5,12 +5,12 @@
  */
 package org.pepsoft.worldpainter.layers.tunnel;
 
-import org.pepsoft.minecraft.Constants;
 import org.pepsoft.minecraft.Material;
 import org.pepsoft.util.MathUtils;
 import org.pepsoft.util.PerlinNoise;
 import org.pepsoft.worldpainter.Dimension;
 import org.pepsoft.worldpainter.MixedMaterial;
+import org.pepsoft.worldpainter.Platform;
 import org.pepsoft.worldpainter.exporting.*;
 import org.pepsoft.worldpainter.heightMaps.NoiseHeightMap;
 import org.pepsoft.worldpainter.layers.Layer;
@@ -21,8 +21,6 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import static org.pepsoft.minecraft.Block.BLOCKS;
 
 /**
  *
@@ -53,7 +51,7 @@ public class TunnelLayerExporter extends AbstractLayerExporter<TunnelLayer> impl
     }
 
     @Override
-    public List<Fixup> render(Dimension dimension, Rectangle area, Rectangle exportedArea, MinecraftWorld world) {
+    public List<Fixup> render(Dimension dimension, Rectangle area, Rectangle exportedArea, MinecraftWorld world, Platform platform) {
         final TunnelLayer.Mode floorMode = layer.getFloorMode(), roofMode = layer.getRoofMode();
         final int floorWallDepth = layer.getFloorWallDepth(), roofWallDepth = layer.getRoofWallDepth(),
                 floorLevel = layer.getFloorLevel(), roofLevel = layer.getRoofLevel(),
@@ -267,7 +265,7 @@ public class TunnelLayerExporter extends AbstractLayerExporter<TunnelLayer> impl
                                         ? MathUtils.clamp(0, (int) (floorLayerSettings[i].getIntensity() + floorLayerNoise[i].getValue(x, y, z) + 0.5f), 100)
                                         : floorLayerSettings[i].getIntensity();
                                 if (intensity > 0) {
-                                    Fixup fixup = floorExporters[i].apply(floorDimension, location, intensity, exportedArea, world);
+                                    Fixup fixup = floorExporters[i].apply(floorDimension, location, intensity, exportedArea, world, platform);
                                     if (fixup != null) {
                                         fixups.add(fixup);
                                     }
@@ -378,9 +376,9 @@ public class TunnelLayerExporter extends AbstractLayerExporter<TunnelLayer> impl
     private void setIfSolid(MinecraftWorld world, int x, int y, int z, int minZ, int maxZ, MixedMaterial material, boolean flooded, int terrainHeight, int waterLevel, boolean removeWater) {
         if ((z >= minZ) && (z <= maxZ)) {
             if (removeWater || (! flooded) || (z <= terrainHeight) || (z > waterLevel)) {
-                final int existingBlock = world.getBlockTypeAt(x, y, z);
-                if ((existingBlock != Constants.BLK_AIR)
-                        && (! BLOCKS[existingBlock].insubstantial)) {
+                final Material existingBlock = world.getMaterialAt(x, y, z);
+                if ((existingBlock != Material.AIR)
+                        && (! existingBlock.insubstantial)) {
                     // The coordinates are within bounds and the existing block is solid
                     world.setMaterialAt(x, y, z, material.getMaterial(MATERIAL_SEED, x, y, z));
                 }

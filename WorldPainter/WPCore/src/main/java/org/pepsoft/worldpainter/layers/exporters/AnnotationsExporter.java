@@ -10,6 +10,7 @@ package org.pepsoft.worldpainter.layers.exporters;
 import org.pepsoft.minecraft.Constants;
 import org.pepsoft.minecraft.Material;
 import org.pepsoft.worldpainter.Dimension;
+import org.pepsoft.worldpainter.Platform;
 import org.pepsoft.worldpainter.exporting.AbstractLayerExporter;
 import org.pepsoft.worldpainter.exporting.Fixup;
 import org.pepsoft.worldpainter.exporting.MinecraftWorld;
@@ -18,8 +19,6 @@ import org.pepsoft.worldpainter.layers.Annotations;
 
 import java.awt.*;
 import java.util.List;
-
-import static org.pepsoft.minecraft.Block.BLOCKS;
 
 /**
  *
@@ -31,7 +30,7 @@ public class AnnotationsExporter extends AbstractLayerExporter<Annotations> impl
     }
 
     @Override
-    public List<Fixup> render(Dimension dimension, Rectangle area, Rectangle exportedArea, MinecraftWorld minecraftWorld) {
+    public List<Fixup> render(Dimension dimension, Rectangle area, Rectangle exportedArea, MinecraftWorld minecraftWorld, Platform platform) {
         AnnotationsSettings settings = (AnnotationsSettings) getSettings();
         if (settings == null) {
             settings = new AnnotationsSettings();
@@ -45,8 +44,8 @@ public class AnnotationsExporter extends AbstractLayerExporter<Annotations> impl
                 final int value = dimension.getLayerValueAt(Annotations.INSTANCE, x, y);
                 if (value > 0) {
                     final int height = dimension.getIntHeightAt(x, y);
-                    final int existingBlockType = minecraftWorld.getBlockTypeAt(x, y, height + 1);
-                    if ((height < maxHeight) && (BLOCKS[existingBlockType].veryInsubstantial || existingBlockType == Constants.BLK_ICE)) {
+                    final Material existingMaterial = minecraftWorld.getMaterialAt(x, y, height + 1);
+                    if ((height < maxHeight) && (existingMaterial.veryInsubstantial || existingMaterial == Material.ICE)) {
                         minecraftWorld.setMaterialAt(x, y, height + 1, Material.get(Constants.BLK_WOOL, value - ((value < 8) ? 1 : 0)));
                     }
                 }

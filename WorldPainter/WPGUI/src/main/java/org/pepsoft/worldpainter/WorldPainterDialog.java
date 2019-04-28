@@ -80,7 +80,15 @@ public class WorldPainterDialog extends JDialog {
 
     @Override
     public void setTitle(String title) {
-        super.setTitle(Configuration.getInstance().isSafeMode() ? (title + "【安全模式】") : title);
+        StringBuilder sb = new StringBuilder();
+        sb.append(title);
+        if (Version.isSnapshot()) {
+            sb.append("【快照】");
+        }
+        if (Configuration.getInstance().isSafeMode()) {
+            sb.append("【安全模式】");
+        }
+        super.setTitle(sb.toString());
     }
 
     protected void ok() {

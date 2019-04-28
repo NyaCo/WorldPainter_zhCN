@@ -2,6 +2,7 @@ package org.pepsoft.worldpainter.plugins;
 
 import org.pepsoft.minecraft.Chunk;
 import org.pepsoft.minecraft.ChunkStore;
+import org.pepsoft.worldpainter.Constants;
 import org.pepsoft.worldpainter.Platform;
 import org.pepsoft.worldpainter.exporting.PostProcessor;
 
@@ -12,6 +13,20 @@ import java.io.File;
  * {@link Platform.Capability#BLOCK_BASED block based} platforms.
  */
 public interface BlockBasedPlatformProvider extends PlatformProvider {
+    /**
+     * Determine which dimensions are present in the map specified by a
+     * particular {@link Platform} and directory.
+     *
+     * @param platform The platform for which to determine the dimensions.
+     * @param worldDir The map base directory for which to determine the
+     *                 dimensions.
+     * @return An array of dimension numbers corresponding to the constants
+     * {@link Constants#DIM_NORMAL}, {@link Constants#DIM_NETHER} and
+     * {@link Constants#DIM_END} for dimensions which correspond to vanilla
+     * Minecraft dimensions.
+     */
+    int[] getDimensions(Platform platform, File worldDir);
+
     /**
      * Create a new, empty chunk for a platform supported by this provider.
      *

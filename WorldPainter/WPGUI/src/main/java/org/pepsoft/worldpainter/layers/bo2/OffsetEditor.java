@@ -120,12 +120,10 @@ public class OffsetEditor extends javax.swing.JDialog {
         spinnerX.setModel(new javax.swing.SpinnerNumberModel(0, -999, 999, 1));
         spinnerX.addChangeListener(this::spinnerXStateChanged);
 
-
         jLabel3.setText("Z轴（从北向南）：");
 
         spinnerY.setModel(new javax.swing.SpinnerNumberModel(0, -999, 999, 1));
         spinnerY.addChangeListener(this::spinnerYStateChanged);
-
 
         jLabel4.setText("Y轴（垂直）：");
 

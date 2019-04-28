@@ -37,8 +37,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.*;
 
-import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_1;
-import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_2;
+import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_ANVIL;
+import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_MCREGION;
 import static org.pepsoft.util.swing.ProgressDialog.NOT_CANCELABLE;
 import static org.pepsoft.util.swing.SpinnerUtils.setMaximum;
 import static org.pepsoft.worldpainter.Constants.MAX_HEIGHT;
@@ -66,7 +66,7 @@ public class ImportHeightMapDialog extends WorldPainterDialog implements Documen
         checkBoxCreateTiles.setSelected(true);
         labelWarning.setVisible(false);
         comboBoxPlatform.setModel(new DefaultComboBoxModel<>(PlatformManager.getInstance().getAllPlatforms().toArray(new Platform[0])));
-        
+
         fieldFilename.getDocument().addDocumentListener(this);
         
         rootPane.setDefaultButton(buttonOk);
@@ -82,7 +82,7 @@ public class ImportHeightMapDialog extends WorldPainterDialog implements Documen
             buttonLoadDefaults.setEnabled(true);
             buttonSaveAsDefaults.setEnabled(true);
         } else {
-            heightMapTileFactoryEditor1.setTheme((SimpleTheme) TileFactoryFactory.createNoiseTileFactory(new Random().nextLong(), Terrain.GRASS, DEFAULT_MAX_HEIGHT_2, 58, 62, false, true, 20, 1.0).getTheme());
+            heightMapTileFactoryEditor1.setTheme((SimpleTheme) TileFactoryFactory.createNoiseTileFactory(new Random().nextLong(), Terrain.GRASS, DEFAULT_MAX_HEIGHT_ANVIL, 58, 62, false, true, 20, 1.0).getTheme());
             heightMapTileFactoryEditor1.setChangeListener(this);
             comboBoxPlatform.setSelectedItem(JAVA_ANVIL);
             labelNoUndo.setText(" ");
@@ -318,7 +318,7 @@ outer:          for (int x = 0; x < width; x++) {
     private void loadDefaults() {
         Theme defaultTheme = Configuration.getInstance().getHeightMapDefaultTheme();
         if (defaultTheme == null) {
-            HeightMapTileFactory tmpTileFactory = TileFactoryFactory.createNoiseTileFactory(seed, Terrain.GRASS, DEFAULT_MAX_HEIGHT_2, 58, 62, false, true, 20, 1.0);
+            HeightMapTileFactory tmpTileFactory = TileFactoryFactory.createNoiseTileFactory(seed, Terrain.GRASS, DEFAULT_MAX_HEIGHT_ANVIL, 58, 62, false, true, 20, 1.0);
             defaultTheme = tmpTileFactory.getTheme();
             if (currentDimension == null) {
                 buttonResetDefaults.setEnabled(false);
@@ -422,7 +422,7 @@ outer:          for (int x = 0; x < width; x++) {
         // Set levels to reasonable defaults
         selectDefaultVerticalScaling();
 
-        labelWarning.setVisible((comboBoxPlatform.getSelectedItem() == JAVA_MCREGION) && (platformMaxHeight != DEFAULT_MAX_HEIGHT_1));
+        labelWarning.setVisible((comboBoxPlatform.getSelectedItem() == JAVA_MCREGION) && (platformMaxHeight != DEFAULT_MAX_HEIGHT_MCREGION));
     }
 
     /** This method is called from within the constructor to

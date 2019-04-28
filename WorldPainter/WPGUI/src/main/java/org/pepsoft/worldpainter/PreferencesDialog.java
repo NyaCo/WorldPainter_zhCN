@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.SortedMap;
 
-import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_2;
+import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_ANVIL;
 import static org.pepsoft.worldpainter.Constants.DIM_NORMAL;
 import static org.pepsoft.worldpainter.Terrain.GRASS;
 
@@ -751,7 +751,7 @@ public class PreferencesDialog extends WorldPainterDialog {
 
         labelTerrainAndLayerSettings.setForeground(java.awt.Color.blue);
         labelTerrainAndLayerSettings.setText("<html><u>配置默认边界、地表和覆盖层</u></html>");
-        labelTerrainAndLayerSettings.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        labelTerrainAndLayerSettings.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
         labelTerrainAndLayerSettings.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 labelTerrainAndLayerSettingsMouseClicked(evt);
@@ -1059,7 +1059,7 @@ public class PreferencesDialog extends WorldPainterDialog {
                             .addComponent(jLabel37)
                             .addComponent(jLabel38)
                             .addComponent(jLabel39))))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(356, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1392,7 +1392,7 @@ public class PreferencesDialog extends WorldPainterDialog {
             checkBoxLava.setSelected(false);
             checkBoxBeaches.setSelected(true);
             comboBoxSurfaceMaterial.setSelectedItem(GRASS);
-            Configuration.getInstance().setDefaultTerrainAndLayerSettings(new World2(DefaultPlugin.JAVA_ANVIL, World2.DEFAULT_OCEAN_SEED, TileFactoryFactory.createNoiseTileFactory(new Random().nextLong(), GRASS, DEFAULT_MAX_HEIGHT_2, 58, 62, false, true, 20, 1.0), DEFAULT_MAX_HEIGHT_2).getDimension(DIM_NORMAL));
+            Configuration.getInstance().setDefaultTerrainAndLayerSettings(new World2(DefaultPlugin.JAVA_ANVIL, World2.DEFAULT_OCEAN_SEED, TileFactoryFactory.createNoiseTileFactory(new Random().nextLong(), GRASS, DEFAULT_MAX_HEIGHT_ANVIL, 58, 62, false, true, 20, 1.0), DEFAULT_MAX_HEIGHT_ANVIL).getDimension(DIM_NORMAL));
         }
     }//GEN-LAST:event_buttonResetActionPerformed
 

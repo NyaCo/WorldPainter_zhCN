@@ -5,10 +5,12 @@
  */
 package org.pepsoft.worldpainter.layers.exporters;
 
+import org.pepsoft.minecraft.Material;
 import org.pepsoft.util.PerlinNoise;
 import org.pepsoft.worldpainter.Dimension;
 import org.pepsoft.worldpainter.MixedMaterial;
 import org.pepsoft.worldpainter.MixedMaterial.Row;
+import org.pepsoft.worldpainter.Platform;
 import org.pepsoft.worldpainter.exporting.AbstractLayerExporter;
 import org.pepsoft.worldpainter.exporting.Fixup;
 import org.pepsoft.worldpainter.exporting.MinecraftWorld;
@@ -20,11 +22,10 @@ import org.pepsoft.worldpainter.util.GeometryUtil;
 import java.awt.*;
 import java.util.List;
 
-import static org.pepsoft.minecraft.Block.BLOCKS;
 import static org.pepsoft.minecraft.Constants.*;
 import static org.pepsoft.minecraft.Material.*;
 import static org.pepsoft.worldpainter.Constants.TINY_BLOBS;
-import static org.pepsoft.worldpainter.biomeschemes.Minecraft1_7Biomes.BIOME_RIVER;
+import static org.pepsoft.worldpainter.biomeschemes.Minecraft1_13Biomes.BIOME_RIVER;
 
 /**
  *
@@ -36,7 +37,7 @@ public class RiverExporter extends AbstractLayerExporter<River> implements Secon
     }
     
     @Override
-    public List<Fixup> render(final Dimension dimension, final Rectangle area, final Rectangle exportedArea, final MinecraftWorld minecraftWorld) {
+    public List<Fixup> render(final Dimension dimension, final Rectangle area, final Rectangle exportedArea, final MinecraftWorld minecraftWorld, Platform platform) {
         final RiverSettings settings = new RiverSettings();
         final int shoreHeight = settings.getShoreHeight();
         final boolean shore = shoreHeight > 0;
@@ -79,14 +80,14 @@ public class RiverExporter extends AbstractLayerExporter<River> implements Secon
                             }
                             if (dz <= -depth) {
                                 // River bed
-                                int existingBlockType = minecraftWorld.getBlockTypeAt(x, y, z);
-                                if (! BLOCKS[existingBlockType].veryInsubstantial) {
+                                Material existingMaterial = minecraftWorld.getMaterialAt(x, y, z);
+                                if (! existingMaterial.veryInsubstantial) {
                                     minecraftWorld.setMaterialAt(x, y, z, riverBedMaterial.getMaterial(seed, x, y, z));
                                 }
                             } else if (dz > -shoreHeight) {
                                 // The air above the river
-                                int existingBlockType = minecraftWorld.getBlockTypeAt(x, y, z);
-                                if ((existingBlockType != BLK_WATER) && (existingBlockType != BLK_STATIONARY_WATER)) {
+                                Material existingMaterial = minecraftWorld.getMaterialAt(x, y, z);
+                                if (existingMaterial.isNotNamed(MC_WATER)) {
                                     minecraftWorld.setMaterialAt(x, y, z, AIR);
                                 }
                             } else if (dz == -shoreHeight) {
@@ -138,15 +139,13 @@ public class RiverExporter extends AbstractLayerExporter<River> implements Secon
                                 if ((dimension.getBitLayerValueAt(River.INSTANCE, x1, y1))
                                         && (dimension.getWaterLevelAt(x1, y1) < waterLevel)) {
                                     int z = waterLevel;
-                                    int existingBlockType = minecraftWorld.getBlockTypeAt(x1, y1, z);
+                                    Material existingMaterial = minecraftWorld.getMaterialAt(x1, y1, z);
                                     while ((z > 0)
-                                            && (existingBlockType != BLK_WATER)
-                                            && (existingBlockType != BLK_STATIONARY_WATER)
-                                            && (existingBlockType != BLK_ICE)
-                                            && BLOCKS[existingBlockType].veryInsubstantial) {
+                                            && existingMaterial.isNotNamedOneOf(MC_WATER, MC_ICE)
+                                            && existingMaterial.veryInsubstantial) {
                                         minecraftWorld.setMaterialAt(x1, y1, z, STATIONARY_WATER);
                                         z--;
-                                        existingBlockType = minecraftWorld.getBlockTypeAt(x1, y1, z);
+                                        existingMaterial = minecraftWorld.getMaterialAt(x1, y1, z);
                                     }
                                 }
                                 return true;
@@ -162,15 +161,13 @@ public class RiverExporter extends AbstractLayerExporter<River> implements Secon
                                 if ((dimension.getBitLayerValueAt(River.INSTANCE, x1, y1))
                                         && (dimension.getWaterLevelAt(x1, y1) < waterLevel)) {
                                     int z = waterLevel - ((int) d);
-                                    int existingBlockType = minecraftWorld.getBlockTypeAt(x1, y1, z);
+                                    Material existingMaterial = minecraftWorld.getMaterialAt(x1, y1, z);
                                     while ((z > 0)
-                                            && (existingBlockType != BLK_WATER)
-                                            && (existingBlockType != BLK_STATIONARY_WATER)
-                                            && (existingBlockType != BLK_ICE)
-                                            && BLOCKS[existingBlockType].veryInsubstantial) {
+                                            && existingMaterial.isNotNamedOneOf(MC_WATER, MC_ICE)
+                                            && existingMaterial.veryInsubstantial) {
                                         minecraftWorld.setMaterialAt(x1, y1, z, STATIONARY_WATER);
                                         z--;
-                                        existingBlockType = minecraftWorld.getBlockTypeAt(x1, y1, z);
+                                        existingMaterial = minecraftWorld.getMaterialAt(x1, y1, z);
                                     }
                                 }
                                 return true;
@@ -189,7 +186,7 @@ public class RiverExporter extends AbstractLayerExporter<River> implements Secon
                 if (dimension.getBitLayerValueAt(River.INSTANCE, x, y)) {
                     int lowestWaterHeight = -1;
                     for (int z = dimension.getIntHeightAt(x, y); z > 0; z--) {
-                        if (((minecraftWorld.getBlockTypeAt(x, y, z) == BLK_WATER) || (minecraftWorld.getBlockTypeAt(x, y, z) == BLK_STATIONARY_WATER)) && (minecraftWorld.getBlockTypeAt(x, y, z - 1) != BLK_WATER) && (minecraftWorld.getBlockTypeAt(x, y, z - 1) != BLK_STATIONARY_WATER)) {
+                        if (minecraftWorld.getMaterialAt(x, y, z).isNamed(MC_WATER) && minecraftWorld.getMaterialAt(x, y, z - 1).isNotNamed(MC_WATER)) {
                             lowestWaterHeight = z;
                             break;
                         }
@@ -215,10 +212,10 @@ public class RiverExporter extends AbstractLayerExporter<River> implements Secon
         }
         int waterLevel = -1;
         for (int z = dimension.getIntHeightAt(x, y); z > 0; z--) {
-            int existingBlockType = world.getBlockTypeAt(x, y, z);
-            if (existingBlockType == BLK_AIR) {
+            Material existingMaterial = world.getMaterialAt(x, y, z);
+            if (existingMaterial == AIR) {
                 continue;
-            } else if ((existingBlockType == BLK_WATER) || (existingBlockType == BLK_STATIONARY_WATER)) {
+            } else if (existingMaterial.isNamed(MC_WATER)) {
                 waterLevel = z;
                 break;
             } else {
@@ -239,7 +236,7 @@ public class RiverExporter extends AbstractLayerExporter<River> implements Secon
         public RiverSettings() {
             riverBedMaterial = new MixedMaterial(
                 "Riverbed",
-                new Row[] {new Row(GRASS, 650, 1.0f),
+                new Row[] {new Row(GRASS_BLOCK, 650, 1.0f),
                     new Row(GRAVEL, 200, 1.0f),
                     new Row(CLAY, 50, 1.0f),
                     new Row(STONE, 100, 1.0f)},

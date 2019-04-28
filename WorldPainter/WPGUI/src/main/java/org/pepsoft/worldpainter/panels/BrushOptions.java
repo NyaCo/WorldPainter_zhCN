@@ -692,7 +692,7 @@ public class BrushOptions extends javax.swing.JPanel implements Observer {
                 .addComponent(checkBoxExceptOn)
                 .addGap(0, 0, 0)
                 .addComponent(buttonExceptOn)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(checkBoxAboveSlope)
                     .addComponent(checkBoxBelowSlope))

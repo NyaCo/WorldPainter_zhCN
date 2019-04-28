@@ -122,7 +122,7 @@ public class MapExplorer {
     private static Component createDetailsPanel() {
         JPanel detailsPanel = new JPanel(new BorderLayout());
         JToolBar toolBar = new JToolBar();
-        wordSizeSpinner = new JSpinner(new SpinnerNumberModel(4, 4, 64, 1));
+        wordSizeSpinner = new JSpinner(new SpinnerNumberModel(4, 4, 999, 1));
         wordSizeSpinner.addChangeListener(e -> updateBinaryData());
         JLabel label = new JLabel("Word size:");
         label.setLabelFor(wordSizeSpinner);
@@ -187,42 +187,42 @@ public class MapExplorer {
     }
 
     private static void updateDetails(Node node) {
-        if (node instanceof TagNode) {
-            // NBT tag
-            Tag tag = ((TagNode) node).getTag();
-            if (tag instanceof ByteArrayTag) {
-                data = ((ByteArrayTag) tag).getValue();
-                updateBinaryData();
-            } else if (tag instanceof IntArrayTag) {
-                data = ((IntArrayTag) tag).getValue();
-                updateBinaryData();
-            } else if (tag instanceof LongArrayTag) {
-                data = ((LongArrayTag) tag).getValue();
-                updateBinaryData();
-            } else {
-                data = null;
-                detailsArea.setIcon(null);
-                detailsArea.setText("<html><pre>" + tag.getValue() + "</pre></html>");
-            }
-        } else if (node instanceof FileSystemNode) {
-            if (node instanceof NBTFileNode) {
-                clearDetails();
-                return;
-            }
-            File file = ((FileSystemNode) node).file;
-            if ((! file.isFile()) || (! file.canRead())) {
-                clearDetails();
-                return;
-            }
-            String name = file.getName().toLowerCase().trim();
-            int p = name.lastIndexOf('.');
-            String extension;
-            if (p != -1) {
-                extension = name.substring(p + 1);
-            } else {
-                extension = null;
-            }
-            try {
+        try {
+            if (node instanceof TagNode) {
+                // NBT tag
+                Tag tag = ((TagNode) node).getTag();
+                if (tag instanceof ByteArrayTag) {
+                    data = ((ByteArrayTag) tag).getValue();
+                    updateBinaryData();
+                } else if (tag instanceof IntArrayTag) {
+                    data = ((IntArrayTag) tag).getValue();
+                    updateBinaryData();
+                } else if (tag instanceof LongArrayTag) {
+                    data = ((LongArrayTag) tag).getValue();
+                    updateBinaryData();
+                } else {
+                    data = null;
+                    detailsArea.setIcon(null);
+                    detailsArea.setText("<html><pre>" + tag + "</pre></html>");
+                }
+            } else if (node instanceof FileSystemNode) {
+                if (node instanceof NBTFileNode) {
+                    clearDetails();
+                    return;
+                }
+                File file = ((FileSystemNode) node).file;
+                if ((! file.isFile()) || (! file.canRead())) {
+                    clearDetails();
+                    return;
+                }
+                String name = file.getName().toLowerCase().trim();
+                int p = name.lastIndexOf('.');
+                String extension;
+                if (p != -1) {
+                    extension = name.substring(p + 1);
+                } else {
+                    extension = null;
+                }
                 byte[] contents = Files.readAllBytes(file.toPath());
                 if (SUPPORTED_IMAGE_TYPES.contains(extension)) {
                     // Image
@@ -239,17 +239,17 @@ public class MapExplorer {
                     data = contents;
                     updateBinaryData();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
-                StringWriter sw = new StringWriter();
-                PrintWriter pw = new PrintWriter(sw);
-                e.printStackTrace(pw);
-                data = null;
-                detailsArea.setIcon(null);
-                detailsArea.setText("<html><pre>" + sw + "</pre></html>");
+            } else {
+                clearDetails();
             }
-        } else {
-            clearDetails();
+        } catch (IOException | RuntimeException e) {
+            e.printStackTrace();
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            data = null;
+            detailsArea.setIcon(null);
+            detailsArea.setText("<html><pre>" + sw + "</pre></html>");
         }
     }
 
@@ -274,6 +274,18 @@ public class MapExplorer {
         } else if (data instanceof long[]) {
             bitSet = BitSet.valueOf((long[]) data);
             lengthInWords = ((long[]) data).length * 64 / wordSize;
+        } else if (data instanceof int[]) {
+            int[] dataAsInts = (int[]) data;
+            if (dataAsInts.length % 2 == 0) {
+                long[] dataAsLongs = new long[dataAsInts.length / 2];
+                for (int i = 0; i < dataAsLongs.length; i++) {
+                    dataAsLongs[i] = (dataAsInts[i * 2] & 0x00000000ffffffffL) | ((long) dataAsInts[i * 2 + 1] << 32);
+                }
+                bitSet = BitSet.valueOf(dataAsLongs);
+                lengthInWords = dataAsLongs.length * 64 / wordSize;
+            } else {
+                throw new IllegalArgumentException("Don't know how to process data of type int[] and odd length");
+            }
         } else {
             throw new IllegalArgumentException("Don't know how to process data of type " + data.getClass());
         }

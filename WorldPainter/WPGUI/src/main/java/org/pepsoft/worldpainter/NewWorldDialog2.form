@@ -65,7 +65,7 @@
         <Container class="javax.swing.JPanel" name="jPanel2">
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.support.JTabbedPaneSupportLayout" value="org.netbeans.modules.form.compat2.layouts.support.JTabbedPaneSupportLayout$JTabbedPaneConstraintsDescription">
-              <JTabbedPaneConstraints tabName="&#x57fa;&#x7840;">
+              <JTabbedPaneConstraints tabName="Basics">
                 <Property name="tabTitle" type="java.lang.String" value="&#x57fa;&#x7840;"/>
               </JTabbedPaneConstraints>
             </Constraint>
@@ -397,7 +397,7 @@
         <Container class="javax.swing.JPanel" name="jPanel3">
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.support.JTabbedPaneSupportLayout" value="org.netbeans.modules.form.compat2.layouts.support.JTabbedPaneSupportLayout$JTabbedPaneConstraintsDescription">
-              <JTabbedPaneConstraints tabName="&#x9ad8;&#x7ea7;">
+              <JTabbedPaneConstraints tabName="Advanced">
                 <Property name="tabTitle" type="java.lang.String" value="&#x9ad8;&#x7ea7;"/>
               </JTabbedPaneConstraints>
             </Constraint>

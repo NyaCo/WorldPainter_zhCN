@@ -19,7 +19,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.zip.GZIPInputStream;
 
-import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_2;
+import static org.pepsoft.minecraft.Constants.DEFAULT_MAX_HEIGHT_ANVIL;
 import static org.pepsoft.worldpainter.Constants.DIM_NORMAL;
 import static org.pepsoft.worldpainter.plugins.WPPluginManager.FILENAME;
 
@@ -91,11 +91,11 @@ public class DumpObject {
             }
             if (wpObject.getEntities() != null) {
                 logger.info("    Entities:");
-                wpObject.getEntities().forEach(entity -> logger.info("        " + entity.getId() + " @ " + entity.getPos()[0] + "," + entity.getPos()[2] + "," + entity.getPos()[1]));
+                wpObject.getEntities().forEach(entity -> logger.info("        " + entity.getId() + " @ " + entity.getPos()[0] + "," + entity.getPos()[2] + "," + entity.getPos()[1] + "; data: " + entity.toNBT()));
             }
             if (wpObject.getTileEntities() != null) {
                 logger.info("    Tile entities:");
-                wpObject.getTileEntities().forEach(entity -> logger.info("        " + entity.getId() + " @ " + entity.getY() + "," + entity.getZ() + "," + entity.getY()));
+                wpObject.getTileEntities().forEach(entity -> logger.info("        " + entity.getId() + " @ " + entity.getY() + "," + entity.getZ() + "," + entity.getY() + "; data: " + entity.toNBT()));
             }
             logger.info("    Blocks:");
             int blockCount = 0;
@@ -122,8 +122,8 @@ public class DumpObject {
     private static final Dimension FAKE_DIMENSION;
 
     static {
-        TileFactory tileFactory = TileFactoryFactory.createNoiseTileFactory(0L, Terrain.GRASS, DEFAULT_MAX_HEIGHT_2, 58, 62, false, true, 20.0f, 1.0);
-        FAKE_DIMENSION = new World2(DefaultPlugin.JAVA_ANVIL, 0L, tileFactory, DEFAULT_MAX_HEIGHT_2).getDimension(DIM_NORMAL);
+        TileFactory tileFactory = TileFactoryFactory.createNoiseTileFactory(0L, Terrain.GRASS, DEFAULT_MAX_HEIGHT_ANVIL, 58, 62, false, true, 20.0f, 1.0);
+        FAKE_DIMENSION = new World2(DefaultPlugin.JAVA_ANVIL, 0L, tileFactory, DEFAULT_MAX_HEIGHT_ANVIL).getDimension(DIM_NORMAL);
     }
 
     private static final Logger logger = LoggerFactory.getLogger(DumpObject.class);

@@ -5,8 +5,10 @@
 
 package org.pepsoft.worldpainter.layers.exporters;
 
+import org.pepsoft.minecraft.Material;
 import org.pepsoft.util.PerlinNoise;
 import org.pepsoft.worldpainter.Dimension;
+import org.pepsoft.worldpainter.Platform;
 import org.pepsoft.worldpainter.exporting.*;
 import org.pepsoft.worldpainter.layers.DeciduousForest;
 import org.pepsoft.worldpainter.layers.GardenCategory;
@@ -22,8 +24,9 @@ import java.io.ObjectStreamException;
 import java.util.List;
 import java.util.Random;
 
-import static org.pepsoft.minecraft.Block.BLOCKS;
-import static org.pepsoft.minecraft.Constants.*;
+import static org.pepsoft.minecraft.Constants.MC_LAVA;
+import static org.pepsoft.minecraft.Constants.MC_WATER;
+import static org.pepsoft.minecraft.Material.*;
 import static org.pepsoft.worldpainter.Constants.SMALL_BLOBS;
 
 /**
@@ -36,7 +39,7 @@ public class TreesExporter<T extends TreeLayer> extends AbstractLayerExporter<T>
     }
     
     @Override
-    public List<Fixup> render(Dimension dimension, Rectangle area, Rectangle exportedArea, MinecraftWorld minecraftWorld) {
+    public List<Fixup> render(Dimension dimension, Rectangle area, Rectangle exportedArea, MinecraftWorld minecraftWorld, Platform platform) {
         TreeLayerSettings<T> settings = (TreeLayerSettings<T>) getSettings();
         int minimumLevel = settings.getMinimumLevel();
         int treeChance = settings.getTreeChance();
@@ -65,14 +68,12 @@ public class TreesExporter<T extends TreeLayer> extends AbstractLayerExporter<T>
                                 continue;
                             }
                             // Don't build trees on air, or in lava or water, or where there is already a solid block (from another layer)
-                            int blockTypeUnderTree = minecraftWorld.getBlockTypeAt(x, y, height);
-                            int blockTypeAtTree = minecraftWorld.getBlockTypeAt(x, y, height + 1);
-                            if ((blockTypeUnderTree == BLK_AIR)
-                                    || (blockTypeUnderTree == BLK_WATER)
-                                    || (blockTypeUnderTree == BLK_STATIONARY_WATER)
-                                    || (blockTypeAtTree == BLK_LAVA)
-                                    || (blockTypeAtTree == BLK_STATIONARY_LAVA)
-                                    || (! BLOCKS[blockTypeAtTree].veryInsubstantial)) {
+                            Material blockTypeUnderTree = minecraftWorld.getMaterialAt(x, y, height);
+                            Material blockTypeAtTree = minecraftWorld.getMaterialAt(x, y, height + 1);
+                            if ((blockTypeUnderTree == AIR)
+                                    || (blockTypeUnderTree.isNamed(MC_WATER))
+                                    || (blockTypeAtTree.isNamed(MC_LAVA))
+                                    || (! blockTypeAtTree.veryInsubstantial)) {
                                 continue;
                             }
                             // Don't build trees directly next to each other, or
@@ -91,7 +92,7 @@ public class TreesExporter<T extends TreeLayer> extends AbstractLayerExporter<T>
     }
 
     @Override
-    public Fixup apply(Dimension dimension, Point3i location, int intensity, Rectangle exportedArea, MinecraftWorld minecraftWorld) {
+    public Fixup apply(Dimension dimension, Point3i location, int intensity, Rectangle exportedArea, MinecraftWorld minecraftWorld, Platform platform) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -111,8 +112,8 @@ public class TreesExporter<T extends TreeLayer> extends AbstractLayerExporter<T>
         final int height = dimension.getIntHeightAt(x + dx, y + dy);
         return (height >= 0)
             && (height < (dimension.getMaxHeight() - 1))
-            && (minecraftWorld.getBlockTypeAt(x + dx, y + dy, height + 1) != BLK_WOOD)
-            && (minecraftWorld.getBlockTypeAt(x + dx, y + dy, height + 1) != BLK_WOOD2)
+            && (! minecraftWorld.getMaterialAt(x + dx, y + dy, height + 1).simpleName.endsWith("_log"))
+            && (! minecraftWorld.getMaterialAt(x + dx, y + dy, height + 1).simpleName.endsWith("_bark"))
             && (dimension.getLayerValueAt(GardenCategory.INSTANCE, x + dx, y + dy) == GardenCategory.CATEGORY_UNOCCUPIED);
     }
 
@@ -145,12 +146,12 @@ public class TreesExporter<T extends TreeLayer> extends AbstractLayerExporter<T>
                     if ((dx != 0) || (dy != 0)) {
                         int rnd = random.nextInt(mushroomIncidence);
                         int x = blockInWorldX + dx, y = blockInWorldY + dy;
-                        if ((rnd == 0) && (minecraftWorld.getBlockTypeAt(x, y, height) != BLK_AIR) && (minecraftWorld.getBlockTypeAt(x, y, height + 1) == BLK_AIR)) {
+                        if ((rnd == 0) && (minecraftWorld.getMaterialAt(x, y, height) != AIR) && (minecraftWorld.getMaterialAt(x, y, height + 1) == AIR)) {
                             float chance = perlinNoise.getPerlinNoise(x / SMALL_BLOBS, y / SMALL_BLOBS, height / SMALL_BLOBS);
                             if (chance > mushroomChance) {
-                                minecraftWorld.setBlockTypeAt(x, y, height + 1, BLK_BROWN_MUSHROOM);
+                                minecraftWorld.setMaterialAt(x, y, height + 1, BROWN_MUSHROOM);
                             } else if (chance < -mushroomChance) {
-                                minecraftWorld.setBlockTypeAt(x, y, height + 1, BLK_RED_MUSHROOM);
+                                minecraftWorld.setMaterialAt(x, y, height + 1, RED_MUSHROOM);
                             }
                         }
                     }
