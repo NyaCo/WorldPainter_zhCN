@@ -17,7 +17,7 @@ import org.pepsoft.worldpainter.WorldPainter;
  */
 public class Erode extends RadiusOperation {
     public Erode(WorldPainter view, RadiusControl radiusControl, MapDragControl mapDragControl) {
-        super("侵蚀", "侵蚀地表", view, radiusControl, mapDragControl, 100, "operation.erode", "erode");
+        super("[BETA] 侵蚀", "侵蚀地表", view, radiusControl, mapDragControl, 100, "operation.erode", "erode");
     }
 
     @Override
